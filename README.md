@@ -261,12 +261,12 @@ The system supports Bluetooth connectivity with mobile devices:
   <table>
     <tr>
       <td align="center">
-        <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image3.png" alt="Game Demo 1" width="300">
+        <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image4.png" alt="Game Demo 2" width="300">
         <br>
         <em>Classic Games: Snake & Tetris on OLED Display</em>
       </td>
       <td align="center">
-        <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image4.png" alt="Game Demo 2" width="300">
+        <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image3.png" alt="Game Demo 1" width="300">
         <br>
         <em>Action Games: Star Wars & Dino Jump Adventures</em>
       </td>
@@ -532,12 +532,12 @@ PLAY_GAME/
   <table>
     <tr>
       <td align="center">
-        <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image3.png" alt="游戏演示1" width="300">
+        <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image4.png" alt="游戏演示2" width="300">
         <br>
         <em>经典游戏：OLED显示屏上的贪吃蛇与俄罗斯方块</em>
       </td>
       <td align="center">
-        <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image4.png" alt="游戏演示2" width="300">
+        <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image3.png" alt="游戏演示1" width="300">
         <br>
         <em>动作游戏：星球大战与小恐龙跳一跳冒险</em>
       </td>
