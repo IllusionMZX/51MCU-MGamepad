@@ -1,0 +1,507 @@
+C51 COMPILER V9.60.7.0   SNAKE                                                             12/07/2024 22:02:47 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE SNAKE
+OBJECT MODULE PLACED IN .\Objects\snake.obj
+COMPILER INVOKED BY: E:\Program Files\Keil_v5\Keil_arm\C51\BIN\C51.EXE snake.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJE
+                    -CTEXTEND PRINT(.\Listings\snake.lst) OBJECT(.\Objects\snake.obj)
+
+line level    source
+
+   1          #include "snake.h"
+   2          
+   3          struct snake Pos[20]; //蛇的身体坐标数据；
+   4          struct snake food ;//食物的坐标位置；
+   5          
+   6          void delay_snake(unsigned char i)
+   7          {
+   8   1          while(i--);
+   9   1      }
+  10          
+  11          bit moveflag = 0, foodflag = 0, giveup = 0, start = 0, fun = 0;
+  12          //giveup是食物被舍弃标志位，foodflag是食物刷新标志位，moveflag是移动标志位
+  13          unsigned char count = 0, page = 0, mode = 0, snake_time = 150, point = 1;
+  14          //page用于显示不同的页面，比如游戏结束页面，开始页面等；mode用于识别蛇的运动状态
+  15          unsigned char head = 3, tail = 0; //蛇身长度
+  16          
+  17          
+  18          void OLED_SnakeBody(unsigned char x, unsigned char y)
+  19          {
+  20   1          unsigned char i;
+  21   1          oled_set_pos(x * 8, y);
+  22   1          for(i = 0; i < 8; i++) {
+  23   2              OLED_I2C_SendByte(body[i]);
+  24   2          }
+  25   1      
+  26   1      }
+  27          
+  28          void OLED_SnakeBody_food(unsigned char x, unsigned char y)
+  29          {
+  30   1          unsigned char i;
+  31   1          oled_set_pos(x * 8, y);
+  32   1          for(i = 0; i < 8; i++) {
+  33   2              OLED_I2C_SendByte(food_good[i]);
+  34   2          }
+  35   1      
+  36   1      }
+  37          
+  38          
+  39          void OLED_CLR_Body(unsigned char x, unsigned char y)
+  40          {
+  41   1          unsigned char i;
+  42   1          oled_set_pos(x * 8, y);
+  43   1          for(i = 0; i < 8; i++) {
+  44   2              OLED_I2C_SendByte(0x00);
+  45   2          }
+  46   1      
+  47   1      }
+  48          
+  49          
+  50          /*     上下左右      */
+  51          void leftkey()
+  52          {
+  53   1          if(left_key == 0 && mode != 1 && mode != 2)
+  54   1              delay_snake(25);
+C51 COMPILER V9.60.7.0   SNAKE                                                             12/07/2024 22:02:47 PAGE 2   
+
+  55   1          if(left_key == 0 && mode != 1 && mode != 2)
+  56   1              mode = 1;
+  57   1          while(!left_key);
+  58   1      }
+  59          void rightkey()
+  60          {
+  61   1          if(right_key == 0 && mode != 1 && mode != 2)
+  62   1              delay_snake(25);
+  63   1          if(right_key == 0 && mode != 1 && mode != 2)
+  64   1              mode = 2;
+  65   1          while(!right_key);
+  66   1      }
+  67          void upkey()
+  68          {
+  69   1          if(up_key == 0 && mode != 3 && mode != 4)
+  70   1              delay_snake(25);
+  71   1          if(up_key == 0 && mode != 3 && mode != 4)
+  72   1              mode = 3;
+  73   1          while(!up_key);
+  74   1      }
+  75          void downkey()
+  76          {
+  77   1          if(down_key == 0 && mode != 3 && mode != 4)
+  78   1              delay_snake(25);
+  79   1          if(down_key == 0 && mode != 3 && mode != 4)
+  80   1              mode = 4;
+  81   1          while(!down_key) ;
+  82   1      }
+  83          
+  84          
+  85          void modeleft()
+  86          {
+  87   1          unsigned char i, j;
+  88   1          if(mode == 1) {
+  89   2              //首先判断是否撞墙；
+  90   2              if(Pos[head - 1].x == 0)
+  91   2                  page = 2;
+  92   2              //再判断是否咬到自己的身体；
+  93   2              if(page == 1)
+  94   2                  for(i = 0; i < head - 1; i++) {
+  95   3                      if((Pos[head - 1].x - 1) == Pos[i].x && Pos[head - 1].y == Pos[i].y)
+  96   3                          page = 2;
+  97   3                  }
+  98   2              if(page == 1) {
+  99   3                  //吃到食物的情况；
+ 100   3                  if((Pos[head - 1].x - 1) == food.x && Pos[head - 1].y == food.y) {
+ 101   4                      head++;//长度加一；
+ 102   4                      foodflag = 0; //刷新下一次食物；
+ 103   4                      Pos[head - 1].x = Pos[head - 2].x - 1;
+ 104   4                      Pos[head - 1].y = Pos[head - 2].y;
+ 105   4                      OLED_SnakeBody(Pos[head - 1].x, Pos[head - 1].y);
+ 106   4                  } else {
+ 107   4      
+ 108   4                      OLED_CLR_Body(Pos[tail].x, Pos[tail].y); //砍断旧尾巴；
+ 109   4                      for(j = 0; j < head - 1; j++) {
+ 110   5                          Pos[j].x = Pos[j + 1].x;
+ 111   5                          Pos[j].y = Pos[j + 1].y;
+ 112   5                      }
+ 113   4                      Pos[head - 1].x--;
+ 114   4                      OLED_SnakeBody(Pos[head - 1].x, Pos[head - 1].y);
+ 115   4                  }
+ 116   3              }
+C51 COMPILER V9.60.7.0   SNAKE                                                             12/07/2024 22:02:47 PAGE 3   
+
+ 117   2      
+ 118   2          }
+ 119   1      }
+ 120          void moderight()
+ 121          {
+ 122   1          unsigned char i, j;
+ 123   1          if(mode == 2) {
+ 124   2              //首先判断是否撞墙；
+ 125   2              if(Pos[head - 1].x == 15)
+ 126   2                  page = 2;
+ 127   2              //再判断是否咬到自己的身体；
+ 128   2              if(page == 1)
+ 129   2                  for(i = 0; i < head - 1; i++) {
+ 130   3                      if((Pos[head - 1].x + 1) == Pos[i].x && Pos[head - 1].y == Pos[i].y)
+ 131   3                          page = 2;
+ 132   3                  }
+ 133   2              //如果既没有撞墙也没有咬到自己的话，就考虑吃到食物和没有吃到的情况；
+ 134   2              if(page == 1) {
+ 135   3                  //吃到食物的情况；
+ 136   3                  if((Pos[head - 1].x + 1) == food.x && Pos[head - 1].y == food.y) {
+ 137   4                      head++;//长度加一；
+ 138   4                      foodflag = 0; //刷新下一次食物；
+ 139   4                      Pos[head - 1].x = Pos[head - 2].x + 1;
+ 140   4                      Pos[head - 1].y = Pos[head - 2].y;
+ 141   4                      OLED_SnakeBody(Pos[head - 1].x, Pos[head - 1].y);
+ 142   4                  } else {
+ 143   4      
+ 144   4                      OLED_CLR_Body(Pos[tail].x, Pos[tail].y);
+ 145   4                      for(j = 0; j < head - 1; j++) {
+ 146   5                          Pos[j].x = Pos[j + 1].x;
+ 147   5                          Pos[j].y = Pos[j + 1].y;
+ 148   5                      }
+ 149   4                      Pos[head - 1].x++;
+ 150   4                      OLED_SnakeBody(Pos[head - 1].x, Pos[head - 1].y);
+ 151   4                  }
+ 152   3              }
+ 153   2      
+ 154   2          }
+ 155   1      }
+ 156          void modeup()
+ 157          {
+ 158   1          unsigned char i, j;
+ 159   1          if(mode == 3) {
+ 160   2              //首先判断是否撞墙；
+ 161   2              if(Pos[head - 1].y == 0)
+ 162   2                  page = 2;
+ 163   2              //再判断是否咬到自己的身体；
+ 164   2              if(page == 1)
+ 165   2                  for(i = 0; i < head - 1; i++) {
+ 166   3                      if((Pos[head - 1].x) == Pos[i].x && Pos[head - 1].y - 1 == Pos[i].y)
+ 167   3                          page = 2;
+ 168   3                  }
+ 169   2              if(page == 1) {
+ 170   3                  //吃到食物的情况；
+ 171   3                  if(Pos[head - 1].x == food.x && (Pos[head - 1].y - 1) == food.y) {
+ 172   4                      head++;//长度加一；
+ 173   4                      foodflag = 0; //刷新下一次食物；
+ 174   4                      Pos[head - 1].x = Pos[head - 2].x;
+ 175   4                      Pos[head - 1].y = Pos[head - 2].y - 1;
+ 176   4                      OLED_SnakeBody(Pos[head - 1].x, Pos[head - 1].y);
+ 177   4                  } else {
+ 178   4      
+C51 COMPILER V9.60.7.0   SNAKE                                                             12/07/2024 22:02:47 PAGE 4   
+
+ 179   4                      OLED_CLR_Body(Pos[tail].x, Pos[tail].y);
+ 180   4                      for(j = 0; j < head - 1; j++) {
+ 181   5                          Pos[j].x = Pos[j + 1].x;
+ 182   5                          Pos[j].y = Pos[j + 1].y;
+ 183   5                      }
+ 184   4                      Pos[head - 1].y--;
+ 185   4                      OLED_SnakeBody(Pos[head - 1].x, Pos[head - 1].y);
+ 186   4                  }
+ 187   3              }
+ 188   2      
+ 189   2          }
+ 190   1      }
+ 191          void modedown()
+ 192          {
+ 193   1          unsigned char i, j;
+ 194   1          if(mode == 4) {
+ 195   2              //首先判断是否撞墙；
+ 196   2              if(Pos[head - 1].y == 7)
+ 197   2                  page = 2;
+ 198   2              //再判断是否咬到自己的身体；
+ 199   2              if(page == 1)
+ 200   2                  for(i = 0; i < head - 1; i++) {
+ 201   3                      if((Pos[head - 1].x) == Pos[i].x && Pos[head - 1].y + 1 == Pos[i].y)
+ 202   3                          page = 2;
+ 203   3                  }
+ 204   2              //如果既没有撞墙也没有咬到自己  ，那就考虑吃到食物和没有吃到的情况；
+ 205   2              if(page == 1) {
+ 206   3                  //吃到食物的情况；
+ 207   3                  if(Pos[head - 1].x == food.x && (Pos[head - 1].y + 1) == food.y) {
+ 208   4                      head++;//长度加一；
+ 209   4                      foodflag = 0; //刷新下一次食物；
+ 210   4                      Pos[head - 1].x = Pos[head - 2].x;
+ 211   4                      Pos[head - 1].y = Pos[head - 2].y + 1;
+ 212   4                      OLED_SnakeBody(Pos[head - 1].x, Pos[head - 1].y);
+ 213   4                  } else { //没吃到食物的情况
+ 214   4      
+ 215   4                      OLED_CLR_Body(Pos[tail].x, Pos[tail].y);
+ 216   4                      for(j = 0; j < head - 1; j++) {
+ 217   5                          Pos[j].x = Pos[j + 1].x;
+ 218   5                          Pos[j].y = Pos[j + 1].y;
+ 219   5                      }
+ 220   4                      Pos[head - 1].y++;
+ 221   4                      OLED_SnakeBody(Pos[head - 1].x, Pos[head - 1].y);
+ 222   4                  }
+ 223   3              }
+ 224   2      
+ 225   2          }
+ 226   1      }
+ 227          
+ 228          
+ 229          
+ 230          
+ 231          void  keypros(void)
+ 232          {
+ 233   1          leftkey();
+ 234   1          rightkey();
+ 235   1          upkey();
+ 236   1          downkey();
+ 237   1      }
+ 238          
+ 239          void snake_modepros(void)
+ 240          {
+C51 COMPILER V9.60.7.0   SNAKE                                                             12/07/2024 22:02:47 PAGE 5   
+
+ 241   1          modeup();
+ 242   1          modeleft();
+ 243   1          modedown();
+ 244   1          moderight();
+ 245   1      }
+ 246          
+ 247          
+ 248          void  Game_Restart(void)
+ 249          {
+ 250   1          if(left_key == 0)
+ 251   1              delay_snake(25);
+ 252   1          if(left_key == 0) {
+ 253   2              page = 0;
+ 254   2              OLED_Clear();
+ 255   2              OLED_Update();
+ 256   2          }
+ 257   1          while(!left_key);
+ 258   1      }
+ 259          
+ 260          void Snake_Over(void)//蛇死亡函数，在死亡之后显示game over,同时不断检测复原键是否被按下;
+ 261          {
+ 262   1          if(page == 2) {
+ 263   2              mode = 0; //必须清零，否则就会在下一次游戏开始时造成蛇的乱移动；
+ 264   2              TR0 = 0; //关闭定时器；
+ 265   2              OLED_Clear();//先清屏；
+ 266   2              while(page == 2) {
+ 267   3                  OLED_ShowString(0, 0, "game over", OLED_6X8);
+ 268   3                  OLED_ShowString(30, 3, "press left to restart", OLED_6X8);
+ 269   3                  OLED_Update();
+ 270   3                  Game_Restart();
+ 271   3              }
+ 272   2          }
+ 273   1      }
+ 274          
+ 275          
+ 276          
+ 277          // 食物初始化函数；负责在游戏地图上生成食物的位置
+ 278          void Food_Init(void)
+ 279          {
+ 280   1          unsigned char i;
+ 281   1          // 当没有食物生成时，进入循环以生成食物
+ 282   1          while(!foodflag) {
+ 283   2              // 使用count变量的模运算来决定食物的x和y坐标
+ 284   2              food.x = count % 16;
+ 285   2              food.y = count % 8;
+ 286   2              // 遍历蛇的身体部位，检查食物是否生成在蛇身上或地图边缘
+ 287   2              for(i = 0; i < head; i++) {
+ 288   3                  // 一旦满足这个条件，这个食物数据就应该被舍弃，因为在蛇身或者在地图上
+ 289   3                  if((food.x == Pos[i].x && food.y == Pos[i].y) || food.x >= 15 || food.y >= 7 || food.x <= 1 ||
+             - food.y <= 1)
+ 290   3                      giveup = 1;
+ 291   3              }
+ 292   2              // 如果食物数据被舍弃，则重置食物标志和放弃标志，准备下一次生成
+ 293   2              if(giveup == 1) {
+ 294   3                  foodflag = 0;
+ 295   3                  giveup = 0;
+ 296   3              } else {
+ 297   3                  // 如果食物数据有效，设置食物标志，显示食物，并重置放弃标志
+ 298   3                  foodflag = 1;
+ 299   3                  OLED_SnakeBody_food(food.x, food.y);
+ 300   3                  giveup = 0;
+ 301   3                  // 成功生成食物后，跳出循环
+C51 COMPILER V9.60.7.0   SNAKE                                                             12/07/2024 22:02:47 PAGE 6   
+
+ 302   3                  break;
+ 303   3              }
+ 304   2          }
+ 305   1      }
+ 306          
+ 307          /**
+ 308           * 初始化蛇的位置
+ 309           * 
+ 310           * 此函数将蛇的初始位置设置在游戏区域的特定坐标上，并在屏幕上绘制蛇的身体
+ 311           * 它定义了蛇头和蛇身的初始布局，对游戏开始时的界面进行初始化
+ 312           */
+ 313          void Snake_Init(void)
+ 314          {
+ 315   1          // 用于循环遍历蛇的身体部分
+ 316   1          unsigned char i;
+ 317   1      
+ 318   1          // 设置蛇头的初始位置
+ 319   1          Pos[0].x = 6;
+ 320   1          Pos[0].y = 3;
+ 321   1      
+ 322   1          // 设置第一段蛇身的位置
+ 323   1          Pos[1].x = 7;
+ 324   1          Pos[1].y = 3;
+ 325   1      
+ 326   1          // 设置第二段蛇身的位置
+ 327   1          Pos[2].x = 8;
+ 328   1          Pos[2].y = 3;
+ 329   1      
+ 330   1          // 遍历并绘制蛇的身体部分
+ 331   1          for(i = 0; i < head; i++) {
+ 332   2              // 在指定位置绘制蛇的身体
+ 333   2              OLED_SnakeBody(Pos[i].x, Pos[i].y);
+ 334   2          }
+ 335   1      }
+ 336          
+ 337          
+ 338          
+ 339          void choice(void)
+ 340          {
+ 341   1          if(left_key == 0) {
+ 342   2              delay_snake(20);
+ 343   2              if(left_key == 0) {
+ 344   3                  point++;
+ 345   3                  if(point > 3)
+ 346   3                      point = 1;
+ 347   3              }
+ 348   2              while(!left_key);
+ 349   2          }
+ 350   1      
+ 351   1          if(right_key == 0) {
+ 352   2              delay_snake(20);
+ 353   2              if(right_key == 0) {
+ 354   3      
+ 355   3                  if(point == 1) {
+ 356   4                      snake_time = 90;
+ 357   4                      page = 1;
+ 358   4                      start = 1;
+ 359   4                      foodflag = 0;
+ 360   4                  }
+ 361   3                  if(point == 2) {
+ 362   4                      snake_time = 150;
+ 363   4                      page = 1;
+C51 COMPILER V9.60.7.0   SNAKE                                                             12/07/2024 22:02:47 PAGE 7   
+
+ 364   4                      start = 1;
+ 365   4                      foodflag = 0;
+ 366   4                  }
+ 367   3                  if(point == 3)
+ 368   3                      fun = 1;
+ 369   3              }
+ 370   2              while(!right_key);
+ 371   2          }
+ 372   1      }
+ 373          
+ 374          
+ 375          void page0(void)
+ 376          {
+ 377   1          OLED_ShowString(10, 0, "greedy snake", OLED_6X8);
+ 378   1          OLED_ShowString(20, 2, "difficult", OLED_6X8);
+ 379   1          OLED_ShowString(20, 4, "normal", OLED_6X8);
+ 380   1          OLED_ShowString(20, 6, "easy", OLED_6X8) ;
+ 381   1      
+ 382   1          if(point == 1) {
+ 383   2              OLED_ShowChar(10, 2, '>', OLED_6X8);
+ 384   2              OLED_ShowChar(10, 4, ' ', OLED_6X8);
+ 385   2              OLED_ShowChar(10, 6, ' ', OLED_6X8);
+ 386   2          }
+ 387   1          if(point == 2) {
+ 388   2              OLED_ShowChar(10, 2, ' ', OLED_6X8);
+ 389   2              OLED_ShowChar(10, 4, '>', OLED_6X8);
+ 390   2              OLED_ShowChar(10, 6, ' ', OLED_6X8);
+ 391   2          }
+ 392   1          if(point == 3) {
+ 393   2              OLED_ShowChar(10, 3, ' ', OLED_6X8);
+ 394   2              OLED_ShowChar(10, 4, ' ', OLED_6X8);
+ 395   2              OLED_ShowChar(10, 6, '>', OLED_6X8);
+ 396   2          }
+ 397   1          if(fun == 1) {
+ 398   2              OLED_Clear();
+ 399   2              OLED_Update();
+ 400   2              while(fun == 1) {
+ 401   3      
+ 402   3                  if(left_key == 0) delay_snake(25);
+ 403   3                  if(left_key == 0) {
+ 404   4                      fun = 0;
+ 405   4                      OLED_Clear();
+ 406   4                  }
+ 407   3                  while(!left_key);
+ 408   3              }
+ 409   2              OLED_Clear();
+ 410   2              OLED_Update();
+ 411   2          }
+ 412   1          OLED_Update();
+ 413   1          choice();
+ 414   1      }
+ 415          
+ 416          
+ 417          /**
+ 418           * SnakeGame函数是蛇类游戏的主循环。
+ 419           * 它根据当前页面(page)的状态来执行不同的游戏逻辑。
+ 420           * 该函数没有参数，也不返回任何值。
+ 421           */
+ 422          void SnakeGame(void)
+ 423          {
+ 424   1          // 当页面为0时，持续显示页面0的内容
+ 425   1          while(page == 0) {
+C51 COMPILER V9.60.7.0   SNAKE                                                             12/07/2024 22:02:47 PAGE 8   
+
+ 426   2              page0();
+ 427   2          }
+ 428   1          
+ 429   1          // 调用choice函数，可能允许用户做出某种选择
+ 430   1          choice();
+ 431   1          
+ 432   1          // 当页面为1时，即游戏进行中
+ 433   1          while(page == 1) {
+ 434   2              // 如果游戏开始标志被设置为1
+ 435   2              if(start == 1) {
+ 436   3                  // 清除OLED屏幕并更新显示内容
+ 437   3                  OLED_Clear();
+ 438   3                  OLED_Update();
+ 439   3                  
+ 440   3                  // 启动定时器0
+ 441   3                  TR0 = 1;
+ 442   3                  
+ 443   3                  // 初始化蛇头的位置
+ 444   3                  head = 3;
+ 445   3                  
+ 446   3                  // 初始化蛇的身体
+ 447   3                  Snake_Init();
+ 448   3                  
+ 449   3                  // 重置游戏开始标志
+ 450   3                  start = 0;
+ 451   3              }
+ 452   2              
+ 453   2              // 初始化食物的位置
+ 454   2              Food_Init();
+ 455   2              
+ 456   2              // 处理键盘输入
+ 457   2              keypros();
+ 458   2          }
+ 459   1          
+ 460   1          // 当页面为2时，即游戏结束
+ 461   1          while(page == 2) {
+ 462   2              // 停止定时器0
+ 463   2              TR0 = 0;
+ 464   2              
+ 465   2              // 显示游戏结束的逻辑
+ 466   2              Snake_Over();
+ 467   2          }
+ 468   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2701    ----
+   CONSTANT SIZE    =     67    ----
+   XDATA SIZE       =     49       4
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      5    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

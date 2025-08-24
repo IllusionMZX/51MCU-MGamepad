@@ -1,0 +1,13 @@
+".\Objects\main.obj",
+".\Objects\oled.obj",
+".\Objects\oled_data.obj",
+".\Objects\bluetooth.obj",
+".\Objects\WS2812.obj",
+".\Objects\USART.obj",
+".\Objects\DMP.obj",
+".\Objects\MPU6050.obj",
+".\Objects\Soft_I2C.obj",
+".\Objects\tetris.obj",
+".\Objects\snake.obj" 
+TO ".\Objects\PLAY_Game" 
+PRINT(".\Listings\PLAY_Game.m51") RAMSIZE(256) 

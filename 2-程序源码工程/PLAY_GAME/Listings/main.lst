@@ -1,0 +1,853 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: E:\Program Files\Keil_v5\Keil_arm\C51\BIN\C51.EXE main.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJEC
+                    -TEXTEND PRINT(.\Listings\main.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /*********参考资料****************
+   2          游戏设计
+   3          https://space.bilibili.com/189153447
+   4          https://www.bilibili.com/video/BV1bL4y1N77D/?spm_id_from=333.788.player.switch&vd_source=1e593f21abb33e274
+             -077202520cf0b80
+   5          WS2812彩灯底层代码
+   6          https://www.bilibili.com/video/BV1jE411Q7GN?spm_id_from=333.788.player.switch&vd_source=1e593f21abb33e2740
+             -77202520cf0b80&p=2
+   7          MPU6050底层代码
+   8          https://gitee.com/gerhardt1024/mpu6050/tree/master
+   9          ********************************/
+  10          #include <STC15F2K60S2.h>
+  11          #include <stdlib.h>
+  12          #include <intrins.h>
+  13          #include <math.h>
+  14          #include "oled.h"
+  15          #include "bluetooth.h"
+  16          #include "all.h"
+  17          #include "USART.h"
+  18          #include "MPU6050.h"
+  19          #include "DMP.h"
+  20          #include "tetris.h"
+  21          #include "snake.h"
+  22          
+  23          static unsigned long timestamp = 0;
+  24          
+  25          int brightness = 0;           // 当前亮度
+  26          int direction = 1;            // 亮度调整方向 (1: 增加亮度, -1: 减少亮度)
+  27          unsigned int tick = 0;       // 用于计时
+  28          unsigned char breathing_speed = 10;     // 呼吸速度（定时器间隔的倍数，可调节）
+  29          
+  30          unsigned int seed = 1; // 随机数种子
+  31          
+  32          unsigned char state_flag = 0;
+  33          unsigned char bluetooth_control = 0;
+  34          unsigned char handle = 0;
+  35          
+  36          int metx = 0;
+  37          int mety = 0;
+  38          int postoji = 0;
+  39          int nep = 8;
+  40          int smjer = 0;
+  41          int go = 0;
+  42          int rx = 95;
+  43          int ry = 0;
+  44          int rx2 = 95;
+  45          int ry2 = 0;
+  46          int rx3 = 95;
+  47          int ry3 = 0;
+  48          int bodovi = 0;
+  49          
+  50          int brzina = 3;
+  51          int bkugle = 1;
+  52          int najmanja = 600;
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 2   
+
+  53          int najveca = 1200;
+  54          int promjer = 10;
+  55          
+  56          int rx4 = 95;
+  57          int ry4 = 0;
+  58          int zivoti = 5;
+  59          int poc = 0;
+  60          int ispaljeno = 0;
+  61          int nivo = 1;
+  62          int centar = 95;
+  63          unsigned char key_num = 0;
+  64          unsigned long pocetno = 0;
+  65          unsigned long odabrano = 0;
+  66          unsigned long trenutno = 0;
+  67          unsigned long nivovrije = 0;
+  68          int pozicija = 0;
+  69          unsigned long tt = 0;
+  70          float Pitch, Roll, Yaw;
+  71          int poz = 30;
+  72          
+  73          unsigned char get_key_val()
+  74          {
+  75   1          if(up_key == 0)
+  76   1              return 1;
+  77   1          else if(fn2_key == 0)
+  78   1              return 0;
+  79   1          else if(down_key == 0)
+  80   1              return 2;
+  81   1          else return -1;
+  82   1      }
+  83          
+  84          
+  85          void Timer0_Init(void)          //1毫秒@27.000MHz
+  86          {
+  87   1          AUXR |= 0x80;                       //定时器时钟1T模式
+  88   1          TMOD &= 0xF0;                       //设置定时器模式
+  89   1          TL0 = 0x88;                         //设置定时初始值
+  90   1          TH0 = 0x96;                         //设置定时初始值
+  91   1          TF0 = 0;                            //清除TF0标志
+  92   1          TR0 = 1;                            //定时器0开始计时
+  93   1          ET0 = 1;                            //使能定时器0中断
+  94   1          EA = 1;
+  95   1      }
+  96          
+  97          
+  98          unsigned long millis()
+  99          {
+ 100   1          return timestamp;
+ 101   1      }
+ 102          
+ 103          
+ 104          /**
+ 105           * ponovo函数用于重置游戏状态，将所有游戏相关变量初始化为起始值。
+ 106           * 这包括位置、速度、得分、生命值等，以便游戏可以在每次开始或重新开始时�
+             -��于一致的状态。
+ 107           */
+ 108          void ponovo()
+ 109          {
+ 110   1          // 重置玩家位置和状态
+ 111   1          metx = 0;
+ 112   1          mety = 0;
+ 113   1          postoji = 0;
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 3   
+
+ 114   1          nep = 8;
+ 115   1          smjer = 0;
+ 116   1          go = 0;
+ 117   1          
+ 118   1          // 初始化敌人的位置
+ 119   1          rx = 95;
+ 120   1          ry = 0;
+ 121   1          rx2 = 95;
+ 122   1          ry2 = 0;
+ 123   1          rx3 = 95;
+ 124   1          ry3 = 0;
+ 125   1      
+ 126   1          // 重置玩家得分为0
+ 127   1          bodovi = 0;
+ 128   1      
+ 129   1          // 设置游戏速度和球的属性
+ 130   1          brzina = 3;
+ 131   1          bkugle = 1;
+ 132   1          najmanja = 600;
+ 133   1          najveca = 1200;
+ 134   1          promjer = 12;
+ 135   1      
+ 136   1          // 初始化另一个敌人的位置
+ 137   1          rx4 = 95;
+ 138   1          ry4 = 0;
+ 139   1      
+ 140   1          // 重置生命值和游戏进度相关变量
+ 141   1          zivoti = 5;
+ 142   1          poc = 0;
+ 143   1          ispaljeno = 0;
+ 144   1          nivo = 1;
+ 145   1          pocetno = 0;
+ 146   1          odabrano = 0;
+ 147   1          trenutno = 0;
+ 148   1          nivovrije = 0;
+ 149   1      }
+ 150          
+ 151          //WS2812RGB灯带
+ 152          /**
+ 153           * ws2812_allot函数用于根据蓝牙控制信号分配WS2812灯珠的颜色。
+ 154           * 该函数根据蓝牙_control变量的不同值来设置WS2812灯珠的红色分量，
+ 155           * 并固定绿色和蓝色分量的值。
+ 156           */
+ 157          void ws2812_allot()
+ 158          {
+ 159   1          unsigned char i, j;
+ 160   1          // 遍历所有WS2812灯珠
+ 161   1          for(i = 0; i < WSCOUNT; i++)
+ 162   1              // 遍历每个灯珠的RGB分量
+ 163   1              for(j = 0; j < 3; j++) {
+ 164   2                  // 当处理红色分量时
+ 165   2                  if(j == 0) {
+ 166   3                      // 根据蓝牙控制信号设置红色分量的值
+ 167   3                      switch(bluetooth_control) {
+ 168   4                      case 0:
+ 169   4                          WS2812_BUffer[i][j] = 114; //R
+ 170   4                          break;
+ 171   4                      case 1:
+ 172   4                          WS2812_BUffer[i][j] = brightness;
+ 173   4                          break;
+ 174   4                      case 2:
+ 175   4                          WS2812_BUffer[i][j] = 255;
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 4   
+
+ 176   4                          break;
+ 177   4                      case 3:
+ 178   4                          WS2812_BUffer[i][j] = 0;
+ 179   4                          break;
+ 180   4                      default:
+ 181   4                          break;
+ 182   4                      }
+ 183   3                  // 当处理绿色分量时，固定其值为179
+ 184   3                  } else if(j == 1)
+ 185   2                      WS2812_BUffer[i][j] = 179; //G
+ 186   2                  // 当处理蓝色分量时，将其值设置为brightness变量的值
+ 187   2                  else
+ 188   2                      WS2812_BUffer[i][j] = brightness; //B
+ 189   2              }
+ 190   1      }
+ 191          
+ 192          
+ 193          
+ 194          void update_brightness()
+ 195          {
+ 196   1          // 调整亮度值
+ 197   1          brightness += direction * STEP;
+ 198   1      
+ 199   1          // 如果达到边界值，则反向调整
+ 200   1          if(brightness >= MAX_BRIGHTNESS) {
+ 201   2              brightness = MAX_BRIGHTNESS;
+ 202   2              direction = -1;
+ 203   2          } else if(brightness <= MIN_BRIGHTNESS) {
+ 204   2              brightness = MIN_BRIGHTNESS;
+ 205   2              direction = 1;
+ 206   2          }
+ 207   1      }
+ 208          
+ 209          // 简单的伪随机数生成函数
+ 210          unsigned char rand_51()
+ 211          {
+ 212   1          seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF; // LCG算法
+ 213   1          return (seed >> 16) & 0xFF; // 返回0-255之间的值
+ 214   1      }
+ 215          
+ 216          void ws2812_random_colors()
+ 217          {
+ 218   1          u8 i, j;
+ 219   1          for(i = 0; i < WSCOUNT; i++) {
+ 220   2              for(j = 0; j < 3; j++) {
+ 221   3                  WS2812_BUffer[i][j] = rand_51(); // 随机生成0-255之间的颜色值
+ 222   3              }
+ 223   2          }
+ 224   1      }
+ 225          void Timer0_Isr(void) interrupt 1
+ 226          {
+ 227   1          timestamp ++;
+ 228   1          tick++;
+ 229   1      
+ 230   1          if(tick >= breathing_speed) {
+ 231   2              tick = 0;
+ 232   2              update_brightness(); // 更新亮度
+ 233   2          }
+ 234   1      }
+ 235          
+ 236          //蓝牙模块用使用串口2实现
+ 237          void Uart2() interrupt 8
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 5   
+
+ 238          {
+ 239   1          unsigned char recv_data;
+ 240   1          if(S2CON & S2RI) {
+ 241   2              S2CON &= ~S2RI;         //清除S2RI位
+ 242   2              recv_data = S2BUF;
+ 243   2              if(recv_data == '1') {
+ 244   3                  bluetooth_control = 1;
+ 245   3              } else if(recv_data == '2') {
+ 246   3                  bluetooth_control = 2;
+ 247   3              } else if(recv_data == '3') {
+ 248   3                  bluetooth_control = 3;
+ 249   3              } else if(recv_data == '4') {
+ 250   3                  bluetooth_control = 4;
+ 251   3              } else if(recv_data == '5') {
+ 252   3                  bluetooth_control = 5;
+ 253   3              } else if(recv_data == 'A') {
+ 254   3                  state_flag = 1;
+ 255   3              } else if(recv_data == 'B') {
+ 256   3                  state_flag = 2;
+ 257   3              } else if(recv_data == 'C') {
+ 258   3                  state_flag = 3;
+ 259   3              } else if(recv_data == 'D') {
+ 260   3                  state_flag = 4;
+ 261   3              } else {
+ 262   3                  bluetooth_control = 0;
+ 263   3              }
+ 264   2              S2BUF = recv_data;
+ 265   2              while(!(S2CON & S2TI));
+ 266   2              S2CON &= ~S2TI;
+ 267   2      
+ 268   2          }
+ 269   1      }
+ 270          
+ 271          // Dino游戏主循环
+ 272          void DinoGame()
+ 273          {
+ 274   1          // 初始化按键值，用于后续的按键检测
+ 275   1          unsigned char key_num = 0;
+ 276   1          // 初始化仙人掌类别，用于随机生成仙人掌
+ 277   1          unsigned char cactus_category = 0;
+ 278   1          // 定义仙人掌的初始长度
+ 279   1          unsigned char cactus_length = 8;
+ 280   1          // 初始化得分和最高得分
+ 281   1          unsigned int score = 0;
+ 282   1          unsigned int highest_score = 0;
+ 283   1          // 初始化跳跃高度
+ 284   1          int height = 0;
+ 285   1          // 初始化仙人掌的位置
+ 286   1          int cactus_pos = 128;
+ 287   1          // 定义当前速度，用于控制游戏难度
+ 288   1          unsigned char cur_speed = 30;
+ 289   1          // 初始化失败标志
+ 290   1          char failed = 0;
+ 291   1          // 初始化重置标志
+ 292   1          char reset = 0;
+ 293   1      
+ 294   1          // 显示游戏封面
+ 295   1          OLED_ShowImage(0, 0, 128, 64, COVER);
+ 296   1          OLED_Update();
+ 297   1          // 等待玩家按下开始键
+ 298   1          while(fn2_key != 0) {
+ 299   2              if(state_flag != 2)
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 6   
+
+ 300   2                  break;
+ 301   2          }
+ 302   1          // 延时后清除屏幕，准备开始游戏
+ 303   1          delay_ms(100);
+ 304   1          OLED_Clear();
+ 305   1          OLED_Update();
+ 306   1          // 游戏主循环
+ 307   1          while(1) {
+ 308   2              // 检查游戏状态，如果游戏未处于进行中，则退出循环
+ 309   2              if(state_flag != 2)
+ 310   2                  break;
+ 311   2              // 如果游戏失败，处理失败逻辑
+ 312   2              if(failed == 1) {
+ 313   3                  OLED_DrawRestart();
+ 314   3                  //OLED_Update();
+ 315   3                  key_num = get_key_val();
+ 316   3                  // 如果玩家按下重置键，重置游戏状态
+ 317   3                  if(key_num == 2) {
+ 318   4                      OLED_Clear();
+ 319   4                      OLED_Update();
+ 320   4                      if(score > highest_score) highest_score = score;
+ 321   4                      score = 0;
+ 322   4                      failed = 0;
+ 323   4                      height = 0;
+ 324   4                      reset = 1;
+ 325   4                      OLED_DrawDinoJump(reset);
+ 326   4                      //OLED_Update();
+ 327   4                      OLED_DrawCactusRandom(cactus_category, reset);
+ 328   4                      //OLED_Update();
+ 329   4      
+ 330   4                  }
+ 331   3                  continue;
+ 332   3              }
+ 333   2      
+ 334   2              // 更新得分
+ 335   2              score ++;
+ 336   2              // 如果恐龙不在空中或者玩家按下跳跃键，更新恐龙的高度
+ 337   2              if(height <= 0) key_num = get_key_val();
+ 338   2      
+ 339   2              // 绘制地面和云朵
+ 340   2              OLED_DrawGround();
+ 341   2              OLED_DrawCloud();
+ 342   2      
+ 343   2              // 根据恐龙的高度或玩家的输入更新恐龙的状态
+ 344   2              if(height > 0 || key_num == 1) height = OLED_DrawDinoJump(reset);
+ 345   2              else OLED_DrawDino();
+ 346   2              //OLED_Update();
+ 347   2      
+ 348   2              // 更新仙人掌的位置和类别
+ 349   2              cactus_pos = OLED_DrawCactusRandom(cactus_category, reset);
+ 350   2              if(cactus_category == 0) cactus_length = 8;
+ 351   2              else if(cactus_category == 1) cactus_length = 16;
+ 352   2              else cactus_length = 24;
+ 353   2      
+ 354   2              // 如果仙人掌移出屏幕，随机生成新的仙人掌
+ 355   2              if(cactus_pos + cactus_length < 0) {
+ 356   3                  cactus_category = rand() % 4;
+ 357   3                  OLED_DrawCactusRandom(cactus_category, 1);
+ 358   3              }
+ 359   2      
+ 360   2              // 检查恐龙是否碰到仙人掌，如果碰到，标记游戏失败
+ 361   2              if((height < 16) && ((cactus_pos >= 16 && cactus_pos <= 32) || (cactus_pos + cactus_length >= 16 &
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 7   
+
+             -& cactus_pos + cactus_length <= 32))) {
+ 362   3                  failed = 1;
+ 363   3              }
+ 364   2      
+ 365   2              //OLED_ShowString(35, 0, "HI:", OLED_6X8);
+ 366   2              //OLED_ShowNum(58, 0, highest_score, 1, OLED_6X8);
+ 367   2              //OLED_ShowNum(98, 0, score, 1, OLED_6X8);
+ 368   2              //OLED_Update();
+ 369   2      
+ 370   2              // 重置重置标志
+ 371   2              reset = 0;
+ 372   2      
+ 373   2              // 根据得分更新游戏速度
+ 374   2              cur_speed = score / 20;
+ 375   2              if(cur_speed > 29) cur_speed = 29;
+ 376   2              delay_ms(30 - cur_speed);
+ 377   2              // 重置按键值
+ 378   2              key_num = 0;
+ 379   2          }
+ 380   1      }
+ 381          
+ 382          
+ 383          void Star_War()
+ 384          {
+ 385   1          // 清除OLED屏幕
+ 386   1          OLED_Clear();
+ 387   1          // 显示封面图像
+ 388   1          OLED_ShowImage(0, 0, 128, 64, COVER2);
+ 389   1          // 更新OLED显示
+ 390   1          OLED_Update();
+ 391   1          // 等待按键释放
+ 392   1          while(fn2_key != 0) {
+ 393   2              if(state_flag != 1)
+ 394   2                  break;
+ 395   2          };
+ 396   1      
+ 397   1          // 游戏主循环
+ 398   1          while(1) {
+ 399   2              // 如果游戏状态改变，退出循环
+ 400   2              if(state_flag != 1)
+ 401   2                  break;
+ 402   2              // 获取当前时间
+ 403   2              tt = millis();
+ 404   2              // 游戏进行中
+ 405   2              if(go == 0) {
+ 406   3                  // 清除OLED屏幕
+ 407   3                  OLED_Clear();
+ 408   3      
+ 409   3                  // 绘制初始星星图案
+ 410   3                  OLED_DrawPoint(50, 30);
+ 411   3                  OLED_DrawPoint(30, 17);
+ 412   3                  OLED_DrawPoint(60, 18);
+ 413   3                  OLED_DrawPoint(55, 16);
+ 414   3                  OLED_DrawPoint(25, 43);
+ 415   3                  OLED_DrawPoint(100, 43);
+ 416   3                  OLED_DrawPoint(117, 52);
+ 417   3                  OLED_DrawPoint(14, 49);
+ 418   3                  OLED_DrawPoint(24, 24);
+ 419   3                  OLED_DrawPoint(78, 36);
+ 420   3                  OLED_DrawPoint(80, 57);
+ 421   3                  OLED_DrawPoint(107, 11);
+ 422   3                  OLED_DrawPoint(150, 11);
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 8   
+
+ 423   3                  OLED_DrawPoint(5, 5);
+ 424   3                  OLED_DrawPoint(8, 7);
+ 425   3                  OLED_DrawPoint(70, 12);
+ 426   3                  OLED_DrawPoint(10, 56);
+ 427   3                  OLED_DrawPoint(70, 25);
+ 428   3      
+ 429   3                  // 初始化射击计时器
+ 430   3                  if(poc == 0) {
+ 431   4                      pocetno = millis();
+ 432   4                      odabrano = rand() % 800 + 400;
+ 433   4                      poc = 1;
+ 434   4                  }
+ 435   3                  // 获取当前时间
+ 436   3                  trenutno = millis();
+ 437   3      
+ 438   3                  // 每50秒提升一个等级
+ 439   3                  if((trenutno - nivovrije) > 50000) {
+ 440   4                      nivovrije = trenutno;
+ 441   4                      nivo = nivo + 1;
+ 442   4      
+ 443   4                      brzina = brzina + 1;
+ 444   4                      if(nivo % 2 == 0) {
+ 445   5                          bkugle = bkugle + 1;
+ 446   5                          promjer = promjer - 1;
+ 447   5                      }
+ 448   4                      najmanja = najmanja - 50;
+ 449   4                      najveca = najveca - 50;
+ 450   4                  }
+ 451   3      
+ 452   3                  // 发射子弹
+ 453   3                  if((odabrano + pocetno) < trenutno) {
+ 454   4                      poc = 0;
+ 455   4                      ispaljeno = ispaljeno + 1;
+ 456   4                      if(ispaljeno == 1) {
+ 457   5                          rx = 95;
+ 458   5                          ry = nep;
+ 459   5                      }
+ 460   4                      if(ispaljeno == 2) {
+ 461   5                          rx2 = 95;
+ 462   5                          ry2 = nep;
+ 463   5                      }
+ 464   4                      if(ispaljeno == 3) {
+ 465   5                          rx3 = 95;
+ 466   5                          ry3 = nep;
+ 467   5                      }
+ 468   4      
+ 469   4                      if(ispaljeno == 4) {
+ 470   5                          rx4 = 95;
+ 471   5                          ry4 = nep;
+ 472   5                      }
+ 473   4                  }
+ 474   3      
+ 475   3                  // 绘制子弹
+ 476   3                  if(ispaljeno > 0) {
+ 477   4                      OLED_DrawCircle(rx, ry, 2, 0);
+ 478   4                      rx = rx - brzina;
+ 479   4                  }
+ 480   3      
+ 481   3                  if(ispaljeno > 1) {
+ 482   4                      OLED_DrawCircle(rx2, ry2, 1, 0);
+ 483   4                      rx2 = rx2 - brzina;
+ 484   4                  }
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 9   
+
+ 485   3      
+ 486   3                  if(ispaljeno > 2) {
+ 487   4                      OLED_DrawCircle(rx3, ry3, 4, 0);
+ 488   4                      rx3 = rx3 - brzina;
+ 489   4                  }
+ 490   3      
+ 491   3                  if(ispaljeno > 3) {
+ 492   4                      OLED_DrawCircle(rx4, ry4, 2, 0);
+ 493   4                      rx4 = rx4 - brzina;
+ 494   4                  }
+ 495   3      
+ 496   3                  // 处理上移按键
+ 497   3                  if((up_key == 0 || bluetooth_control == 2) && poz >= 2) {
+ 498   4                      bluetooth_control = 0;
+ 499   4                      poz = poz - 2;
+ 500   4                  }
+ 501   3      
+ 502   3                  // 处理下移按键
+ 503   3                  if((down_key == 0 || bluetooth_control == 3) && poz <= 46) {
+ 504   4                      bluetooth_control = 0;
+ 505   4                      poz = poz + 2;
+ 506   4                  }
+ 507   3      
+ 508   3                  // 处理射击按键
+ 509   3                  if((fn2_key == 0 || bluetooth_control == 1) && postoji == 0) {
+ 510   4                      bluetooth_control = 0;
+ 511   4                      postoji = 1;
+ 512   4                      metx = 6;
+ 513   4                      mety = poz + 8;
+ 514   4                      // 发射声音 tone(9, 1200, 20);
+ 515   4                  }
+ 516   3                  // 绘制子弹轨迹
+ 517   3                  if(postoji == 1) {
+ 518   4                      metx = metx + 8;
+ 519   4      
+ 520   4                      OLED_DrawLine(metx, mety, metx + 4, mety);
+ 521   4                  }
+ 522   3      
+ 523   3                  // 绘制飞机
+ 524   3                  OLED_ShowImage(4, poz,  16, 16, dioda16); // 飞机
+ 525   3                  // 绘制目标
+ 526   3                  OLED_DrawCircle(centar, nep, promjer, 0);
+ 527   3                  OLED_DrawCircle(centar + 2, nep + 3, promjer / 3, 1);
+ 528   3      
+ 529   3                  // 显示得分
+ 530   3                  OLED_ShowString(33, 57, "score:", OLED_6X8);
+ 531   3                  OLED_ShowNum(68, 57, bodovi, 3, OLED_6X8);
+ 532   3      
+ 533   3                  // 显示生命值
+ 534   3                  OLED_ShowString(33, 0, "lives:", OLED_6X8);
+ 535   3                  OLED_ShowNum(68, 0, zivoti, 1, OLED_6X8);
+ 536   3      
+ 537   3                  // 显示等级
+ 538   3                  OLED_ShowString(110, 0, "L:", OLED_6X8);
+ 539   3                  OLED_ShowNum(122, 0, nivo, 1, OLED_6X8);
+ 540   3                  // 显示时间
+ 541   3                  OLED_ShowNum(108, 57, trenutno / 1000, 3, OLED_6X8);
+ 542   3      
+ 543   3                  // 更新OLED显示
+ 544   3                  OLED_Update();
+ 545   3      
+ 546   3                  // 子弹出界处理
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 10  
+
+ 547   3                  if(metx > 128)
+ 548   3                      postoji = 0;
+ 549   3      
+ 550   3                  // 目标移动
+ 551   3                  if(smjer == 0) {
+ 552   4                      nep = nep + bkugle;
+ 553   4                  } else {
+ 554   4                      nep = nep - bkugle;
+ 555   4                  }
+ 556   3      
+ 557   3                  // 目标边界处理
+ 558   3                  if(nep >= (64 - promjer))
+ 559   3                      smjer = 1;
+ 560   3                  if(nep <= promjer)
+ 561   3                      smjer = 0;
+ 562   3      
+ 563   3                  // 子弹击中目标
+ 564   3                  if(mety >= nep - promjer && mety <= nep + promjer)
+ 565   3                      if(metx > (centar - promjer) && metx < (centar + promjer)) {
+ 566   4                          metx = -20;
+ 567   4                          // 击中声音 tone(9, 500, 20);
+ 568   4                          bodovi = bodovi + 1;
+ 569   4                          postoji = 0;
+ 570   4                      }
+ 571   3      
+ 572   3                  // 子弹击中飞机
+ 573   3                  pozicija = poz + 8;
+ 574   3                  if(ry >= pozicija - 8 && ry <= pozicija + 8)
+ 575   3                      if(rx < 12 && rx > 4) {
+ 576   4                          rx = 95;
+ 577   4                          ry = -50;
+ 578   4                          // 击中声音 tone(9, 100, 100);
+ 579   4                          zivoti = zivoti - 1;
+ 580   4                      }
+ 581   3      
+ 582   3                  if(ry2 >= pozicija - 8 && ry2 <= pozicija + 8)
+ 583   3                      if(rx2 < 12 && rx2 > 4) {
+ 584   4                          rx2 = -50;
+ 585   4                          ry2 = -50;
+ 586   4                          // 击中声音 tone(9, 100, 100);
+ 587   4                          zivoti = zivoti - 1;
+ 588   4                      }
+ 589   3      
+ 590   3                  if(ry3 >= pozicija - 8 && ry3 <= pozicija + 8)
+ 591   3                      if(rx3 < 12 && rx3 > 4) {
+ 592   4                          rx3 = -50;
+ 593   4                          ry3 = -50;
+ 594   4                          // 击中声音 tone(9, 100, 100);
+ 595   4                          zivoti = zivoti - 1;
+ 596   4                      }
+ 597   3      
+ 598   3                  if(ry4 >= pozicija - 8 && ry4 <= pozicija + 8)
+ 599   3                      if(rx4 < 12 && rx4 > 4) {
+ 600   4                          rx4 = 200;
+ 601   4                          ry4 = -50;
+ 602   4                          ispaljeno = 0;
+ 603   4                          // 击中声音 tone(9, 100, 100);
+ 604   4                          zivoti = zivoti - 1;
+ 605   4                      }
+ 606   3      
+ 607   3                  // 子弹出界处理
+ 608   3                  if(rx4 < 1) {
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 11  
+
+ 609   4                      ispaljeno = 0;
+ 610   4                      rx4 = 200;
+ 611   4                  }
+ 612   3      
+ 613   3                  // 生命值为零时结束游戏
+ 614   3                  if(zivoti == 0)
+ 615   3                      go = 1;
+ 616   3              }
+ 617   2      
+ 618   2              // 游戏结束处理
+ 619   2              if(go == 1) {
+ 620   3                  // 重置生命值
+ 621   3                  if(zivoti == 0) {
+ 622   4                      zivoti = 5;
+ 623   4                  }
+ 624   3                  // 清除OLED屏幕
+ 625   3                  OLED_Clear();
+ 626   3      
+ 627   3                  // 显示游戏结束信息
+ 628   3                  OLED_ShowString(7, 10, "Game Over!", OLED_8X16);
+ 629   3      
+ 630   3                  // 显示得分
+ 631   3                  OLED_ShowString(7, 30, "score:", OLED_6X8);
+ 632   3                  OLED_ShowNum(44, 30, bodovi, 3, OLED_6X8);
+ 633   3      
+ 634   3                  // 显示等级
+ 635   3                  OLED_ShowString(7, 40, "level:", OLED_6X8);
+ 636   3                  OLED_ShowNum(44, 40, nivo, 1, OLED_6X8);
+ 637   3                  // 显示时间
+ 638   3                  OLED_ShowString(7, 50, "time(s):", OLED_6X8);
+ 639   3                  OLED_ShowNum(60, 50, trenutno / 1000, 3, OLED_6X8);
+ 640   3      
+ 641   3                  // 更新OLED显示
+ 642   3                  OLED_Update();
+ 643   3      
+ 644   3                  // 重新开始游戏
+ 645   3                  if(fn2_key == 0 || bluetooth_control == 1) {
+ 646   4                      bluetooth_control = 0;
+ 647   4                      ponovo();
+ 648   4                  }
+ 649   3              }
+ 650   2          }
+ 651   1      }
+ 652          
+ 653          // Tetris游戏主循环函数
+ 654          void TetrisGame()
+ 655          {
+ 656   1          // 定义旋转方块变量
+ 657   1          unsigned char Rot_TTRIS = 0;
+ 658   1          // 定义跳过帧变量
+ 659   1          unsigned char SKIP_FRAME = 0;
+ 660   1          // 重置方块游戏的相关值
+ 661   1          Reset_Value_TTRIS();
+ 662   1          // 游戏主循环
+ 663   1          while(1) {
+ 664   2              // 初始化所有变量
+ 665   2              INIT_ALL_VAR_TTRIS();
+ 666   2              // 开始游戏玩法
+ 667   2              Game_Play_TTRIS();
+ 668   2              // 确定方块的位置
+ 669   2              Ou_suis_Je_TTRIS(xx_TTRIS, yy_TTRIS);
+ 670   2      
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 12  
+
+ 671   2              // 游戏介绍界面
+ 672   2              INTRO_MANIFEST_TTRIS();
+ 673   2      
+ 674   2              // 设置新的预览方块
+ 675   2              SETUP_NEW_PREVIEW_PIECE_TTRIS(&Rot_TTRIS);
+ 676   2              // 刷新屏幕
+ 677   2              Tiny_Flip_TTRIS(128);
+ 678   2              // 延时1秒
+ 679   2              JOY_DLY_ms(1000);
+ 680   2              // 初始化方块的起始位置
+ 681   2              xx_TTRIS = 55;
+ 682   2              yy_TTRIS = 5;
+ 683   2      
+ 684   2              // 游戏内部循环
+ 685   2              while(1) {
+ 686   3                  // 检查游戏状态，如果不为游戏进行中，则跳出循环
+ 687   3                  if(state_flag != 3) {
+ 688   4                      break;
+ 689   4                  }
+ 690   3                  // 控制方块的旋转和移动
+ 691   3                  CONTROLE_TTRIS(&Rot_TTRIS);
+ 692   3                  // 检查方块是否已经到底部
+ 693   3                  if(DROP_BREAK_TTRIS == 6) {
+ 694   4                      // 结束方块的下落
+ 695   4                      END_DROP_TTRIS();
+ 696   4                      // 如果游戏结束
+ 697   4                      if(End_Play_TTRIS()) {
+ 698   5                          // 刷新屏幕
+ 699   5                          Tiny_Flip_TTRIS(128);
+ 700   5                          // 发出声音
+ 701   5                          SND_TTRIS(3);
+ 702   5                          // 延时2秒
+ 703   5                          JOY_DLY_ms(2000);
+ 704   5                          // 检查是否打破记录
+ 705   5                          Check_NEW_RECORD();
+ 706   5                          break;
+ 707   5                      }
+ 708   4                      // 重置方块的位置和形状
+ 709   4                      yy_TTRIS = 2;
+ 710   4                      xx_TTRIS = 55;
+ 711   4                      PIECEs_TTRIS = PIECEs_TTRIS_PREVIEW;
+ 712   4                      SETUP_NEW_PREVIEW_PIECE_TTRIS(&Rot_TTRIS);
+ 713   4                      // 设置下降速度
+ 714   4                      DOWN_DESACTIVE_TTRIS = 1;
+ 715   4                      // 刷新屏幕
+ 716   4                      Tiny_Flip_TTRIS(128);
+ 717   4                      Game_Play_TTRIS();
+ 718   4                      Tiny_Flip_TTRIS(128);
+ 719   4                  }
+ 720   3      
+ 721   3                  // 如果有按键按下并且没有按键抖动
+ 722   3                  if((JOY_act_pressed()) && (Ripple_filter_TTRIS == 0)) {
+*** WARNING C206 IN LINE 722 OF main.c: 'JOY_act_pressed': missing function-prototype
+ 723   4                      // 产生伪随机数
+ 724   4                      PSEUDO_RND_TTRIS();
+ 725   4                      // 设置按键抖动过滤
+ 726   4                      Ripple_filter_TTRIS = 1;
+ 727   4                  }
+ 728   3      
+ 729   3                  // 移动方块
+ 730   3                  Move_Piece_TTRIS();
+ 731   3                  // 控制游戏帧率
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 13  
+
+ 732   3                  if(SKIP_FRAME == 6) {
+ 733   4                      Tiny_Flip_TTRIS(82);
+ 734   4                      SKIP_FRAME = 0;
+ 735   4                  } else {
+ 736   4                      SKIP_FRAME++;
+ 737   4                  }
+ 738   3              }
+ 739   2          }
+ 740   1      }
+ 741          
+ 742          void main()
+ 743          {
+ 744   1      
+ 745   1          Timer0_Init();
+ 746   1          Uart2Init();
+ 747   1          Uart1Init();
+ 748   1          MPU6050_DMP_Init();
+ 749   1          OLED_Init();
+ 750   1          OLED_ShowImage(0, 0, 128, 64, COVER_PLAY_HANDLE);
+ 751   1          OLED_Update();
+ 752   1          while(fn2_key != 0) {
+ 753   2              while((handle_key != 0) && (handle == 0)) {
+ 754   3                  ws2812_allot();
+ 755   3                  WS2812_Ser();
+ 756   3              }
+ 757   2              handle = 1;
+ 758   2              ///*******MPU6050*******/
+ 759   2              MPU6050_Refresh_DMP();
+ 760   2      
+ 761   2              Pitch = asin(2 * Q[1] * Q[3] - 2 * Q[0] * Q[2]) * 57.3; // pitch
+ 762   2              Roll  = atan2(2 * Q[2] * Q[3] + 2 * Q[0] * Q[1], -2 * Q[1] * Q[1] - 2 * Q[2] * Q[2] + 1) * 57.3;        /
+             -/ roll
+ 763   2              Yaw   = atan2(2 * (Q[1] * Q[2] + Q[0] * Q[3]), Q[0] * Q[0] + Q[1] * Q[1] - Q[2] * Q[2] - Q[3] * Q[
+             -3]) * 57.3;        //yaw
+ 764   2      
+ 765   2              SendFloat(&Pitch);//发送
+*** WARNING C182 IN LINE 765 OF main.c: pointer to different objects
+ 766   2              SendFloat(&Roll);
+*** WARNING C182 IN LINE 766 OF main.c: pointer to different objects
+ 767   2              SendFloat(&Yaw);
+*** WARNING C182 IN LINE 767 OF main.c: pointer to different objects
+ 768   2              SendEnd();
+ 769   2          }
+ 770   1          while(1) {
+ 771   2              OLED_ShowImage(0, 0, 128, 64, COVER_PLAY_GAME);
+ 772   2              OLED_Update();
+ 773   2              switch(state_flag) {
+ 774   3              case 1:
+ 775   3                  Star_War();
+ 776   3                  break;
+ 777   3              case 2:
+ 778   3                  DinoGame();
+ 779   3                  break;
+ 780   3              case 3:
+ 781   3                  TetrisGame();
+ 782   3                  break;
+ 783   3              case 4:
+ 784   3                  SnakeGame();
+ 785   3                  break;
+ 786   3              default:
+ 787   3                  break;
+ 788   3              }
+C51 COMPILER V9.60.7.0   MAIN                                                              12/07/2024 22:02:47 PAGE 14  
+
+ 789   2      
+ 790   2          }
+ 791   1      }
+ 792          
+ 793          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   5321    ----
+   CONSTANT SIZE    =     44    ----
+   XDATA SIZE       =    103      18
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  4 WARNING(S),  0 ERROR(S)

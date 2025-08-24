@@ -1,0 +1,39 @@
+C51 COMPILER V9.60.7.0   BLUETOOTH                                                         12/05/2024 10:03:57 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE BLUETOOTH
+OBJECT MODULE PLACED IN .\Objects\bluetooth.obj
+COMPILER INVOKED BY: E:\Program Files\Keil_v5\Keil_arm\C51\BIN\C51.EXE bluetooth.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG 
+                    -OBJECTEXTEND PRINT(.\Listings\bluetooth.lst) OBJECT(.\Objects\bluetooth.obj)
+
+line level    source
+
+   1          #include "bluetooth.h"
+   2          
+   3          
+   4          
+   5          void Uart2Init(void)            //9600bps@27.000MHz
+   6          {
+   7   1              S2CON = 0x50;           //8位数据,可变波特率
+   8   1              AUXR |= 0x04;           //定时器2时钟为Fosc,即1T
+   9   1              T2L = 0x41;             //设定定时初值
+  10   1              T2H = 0xFD;             //设定定时初值
+  11   1              AUXR |= 0x10;           //启动定时器2
+  12   1              IE2 |= 0x01;
+  13   1              EA = 1;
+  14   1      
+  15   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     21    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

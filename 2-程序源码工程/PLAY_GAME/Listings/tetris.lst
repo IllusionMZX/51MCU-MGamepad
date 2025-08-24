@@ -1,0 +1,1001 @@
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE TETRIS
+OBJECT MODULE PLACED IN .\Objects\tetris.obj
+COMPILER INVOKED BY: E:\Program Files\Keil_v5\Keil_arm\C51\BIN\C51.EXE tetris.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJ
+                    -ECTEXTEND PRINT(.\Listings\tetris.lst) OBJECT(.\Objects\tetris.obj)
+
+line level    source
+
+   1          #include "tetris.h"
+   2          
+   3          
+   4          unsigned char Grid_TTRIS[12][3] = {{0}};
+   5          unsigned char MEM_TTTRIS[16] = {0, 2, 0, 4, 3, 7, 6, 9, 9, 12, 11, 15, 14, 17, 17, 19};
+   6          
+   7          unsigned char Level_TTRIS;
+   8          unsigned int Scores_TTRIS;
+   9          unsigned int Nb_of_line_F_TTRIS;
+  10          unsigned char Level_Speed_ADJ_TTRIS;
+  11          unsigned char Nb_of_line_TTRIS[3];
+  12          unsigned char RND_VAR_TTRIS;
+  13          unsigned char LONG_PRESS_X_TTRIS;
+  14          unsigned char DOWN_DESACTIVE_TTRIS;
+  15          unsigned char DROP_SPEED_TTRIS;
+  16          unsigned char SPEED_x_trig_TTRIS;
+  17          unsigned char DROP_TRIG_TTRIS;
+  18          int xx_TTRIS, yy_TTRIS;
+  19          unsigned char Piece_Mat2_TTRIS[5][5];
+  20          unsigned char Ripple_filter_TTRIS;
+  21          unsigned char PIECEs_TTRIS;
+  22          unsigned char PIECEs_TTRIS_PREVIEW;
+  23          unsigned char PIECEs_rot_TTRIS;
+  24          unsigned char DROP_BREAK_TTRIS;
+  25          int OU_SUIS_JE_X_TTRIS;
+  26          int OU_SUIS_JE_Y_TTRIS;
+  27          unsigned char OU_SUIS_JE_X_ENGAGED_TTRIS;
+  28          unsigned char OU_SUIS_JE_Y_ENGAGED_TTRIS;
+  29          int DEPLACEMENT_XX_TTRIS;
+  30          int DEPLACEMENT_YY_TTRIS;
+  31          
+  32          long map(long x, long in_min, long in_max, long out_min, long out_max)
+  33          {
+  34   1          return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+  35   1      }
+  36          
+  37          void JOY_DLY_ms(int ms)
+  38          {
+  39   1          int i = 0;
+  40   1          for(i = 0; i < ms; i++) delay_ms(1);
+  41   1      }
+  42          
+  43          unsigned char JOY_act_pressed()
+  44          {
+  45   1          if(fn2_key == 0) {
+  46   2              return 1;
+  47   2          }
+  48   1          return 0;
+  49   1      }
+  50          
+  51          //void JOY_sound(unsigned char freq, unsigned char dur)
+  52          //{
+  53          //      return ;
+  54          //}
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 2   
+
+  55          
+  56          unsigned char JOY_right_pressed()
+  57          {
+  58   1          if(right_key == 0) {
+  59   2              return 1;
+  60   2          }
+  61   1          return 0;
+  62   1      }
+  63          
+  64          
+  65          unsigned char JOY_left_pressed()
+  66          {
+  67   1          if(left_key == 0) {
+  68   2              return 1;
+  69   2          }
+  70   1          return 0;
+  71   1      }
+  72          
+  73          unsigned char JOY_act_released()
+  74          {
+  75   1      
+  76   1          if(fn2_key == 0) return 1;
+  77   1          return 0;
+  78   1      
+  79   1      }
+  80          
+  81          unsigned char JOY_down_pressed()
+  82          {
+  83   1          if(down_key == 0) {
+  84   2              return 1;
+  85   2          }
+  86   1          return 0;
+  87   1      }
+  88          
+  89          void reset_Score_TTRIS(void)
+  90          {
+  91   1          unsigned char x = 0;
+  92   1          for(x = 0; x < 3; x++) {
+  93   2              Nb_of_line_TTRIS[x] = 0;
+  94   2          }
+  95   1          Level_TTRIS = 0;
+  96   1          Scores_TTRIS = 0;
+  97   1          Nb_of_line_F_TTRIS = 0;
+  98   1      }
+  99          
+ 100          unsigned char PSEUDO_RND_TTRIS(void)
+ 101          {
+ 102   1          RND_VAR_TTRIS = (RND_VAR_TTRIS < 6) ? RND_VAR_TTRIS + 1 : 0;
+ 103   1          return RND_VAR_TTRIS;
+ 104   1      }
+ 105          
+ 106          void SND_TTRIS(unsigned char Snd_TTRIS)
+ 107          {
+ 108   1          unsigned char q;
+ 109   1          switch(Snd_TTRIS) {
+ 110   2          case 0:
+ 111   2              //JOY_sound(3, 5);
+ 112   2              //JOY_sound(10, 10);
+ 113   2              //JOY_sound(3, 5);
+ 114   2              break;
+ 115   2          case 1:
+ 116   2              //JOY_sound(3, 2);
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 3   
+
+ 117   2              break;
+ 118   2          case 2:
+ 119   2              for(q = 1; q < 10; q++) {
+ 120   3                  //JOY_sound(40, 80);
+ 121   3                  //JOY_sound(150, 80);
+ 122   3              }
+ 123   2              break;
+ 124   2          case 3:
+ 125   2              for(q = 100; q > 10; q--) {
+ 126   3                  //JOY_sound(q * 2, 6);
+ 127   3                  //JOY_sound(q, 12);
+ 128   3              }
+ 129   2              break;
+ 130   2          case 4:
+ 131   2              //JOY_sound(20, 150);
+ 132   2              //JOY_sound(100, 150);
+ 133   2              break;
+ 134   2          case 5:
+ 135   2              for(q = 0; q < 126; q++) {
+ 136   3                  //JOY_sound(q * 2, 1);
+ 137   3              }
+ 138   2              break;
+ 139   2          default:
+ 140   2              break;
+ 141   2          }
+ 142   1      }
+ 143          
+ 144          void INTRO_MANIFEST_TTRIS(void)
+ 145          {
+ 146   1          unsigned char TIMER_1 = 0;
+ 147   1          recupe_HIGHSCORE_TTRIS();
+ 148   1          Convert_Nb_of_line_TTRIS();
+ 149   1          Flip_intro_TTRIS(&TIMER_1);
+ 150   1          while(1) {
+ 151   2              PIECEs_TTRIS = PSEUDO_RND_TTRIS();
+ 152   2              if(JOY_act_pressed()) {
+ 153   3                  reset_Score_TTRIS();
+ 154   3                  break;
+ 155   3              }
+ 156   2              JOY_DLY_ms(33);
+ 157   2              TIMER_1 = (TIMER_1 < 7) ? TIMER_1 + 1 : 0;
+ 158   2              Flip_intro_TTRIS(&TIMER_1);
+ 159   2          }
+ 160   1          SND_TTRIS(4);
+ 161   1      }
+ 162          
+ 163          void END_DROP_TTRIS(void)
+ 164          {
+ 165   1          unsigned char x, y;
+ 166   1          DROP_BREAK_TTRIS = 0;
+ 167   1          for(y = 0; y < 5; y++) {
+ 168   2              for(x = 0; x < 5; x++) {
+ 169   3                  if(Piece_Mat2_TTRIS[x][y] == 1) {
+ 170   4                      CHANGE_GRID_STAT_TTRIS(OU_SUIS_JE_X_TTRIS + (x), OU_SUIS_JE_Y_TTRIS + (y), 1);
+ 171   4                  }
+ 172   3              }
+ 173   2          }
+ 174   1          Scores_TTRIS = (OU_SUIS_JE_Y_TTRIS < 9) ? Scores_TTRIS + 2 : Scores_TTRIS + 1;
+ 175   1          yy_TTRIS = 0;
+ 176   1          xx_TTRIS = 0;
+ 177   1          DELETE_LINE_TTRIS();
+ 178   1          Convert_Nb_of_line_TTRIS();
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 4   
+
+ 179   1      }
+ 180          
+ 181          void SETUP_NEW_PREVIEW_PIECE_TTRIS(unsigned char* Rot_TTRIS)
+ 182          {
+ 183   1          PIECEs_TTRIS_PREVIEW = PSEUDO_RND_TTRIS();
+ 184   1          Select_Piece_TTRIS(PIECEs_TTRIS);
+ 185   1          *Rot_TTRIS = 0;
+ 186   1          rotate_Matrix_TTRIS(*Rot_TTRIS);
+ 187   1      }
+ 188          
+ 189          void CONTROLE_TTRIS(unsigned char* Rot_TTRIS)
+ 190          {
+ 191   1          if((OU_SUIS_JE_X_ENGAGED_TTRIS == 0)) {
+ 192   2              if(SPEED_x_trig_TTRIS == 0) {
+ 193   3                  if(JOY_right_pressed()) {
+ 194   4                      if(LONG_PRESS_X_TTRIS == 0) {
+ 195   5                          SND_TTRIS(1);
+ 196   5                      }
+ 197   4                      if((LONG_PRESS_X_TTRIS == 0) || (LONG_PRESS_X_TTRIS == 20)) {
+ 198   5                          DEPLACEMENT_XX_TTRIS = 1;
+ 199   5                          SPEED_x_trig_TTRIS = 2;
+ 200   5                      }
+ 201   4                      if(LONG_PRESS_X_TTRIS < 20) {
+ 202   5                          LONG_PRESS_X_TTRIS++;
+ 203   5                      }
+ 204   4                  }
+ 205   3                  if(JOY_left_pressed()) {
+ 206   4                      if(LONG_PRESS_X_TTRIS == 0) {
+ 207   5                          SND_TTRIS(1);
+ 208   5                      }
+ 209   4                      if((LONG_PRESS_X_TTRIS == 0) || (LONG_PRESS_X_TTRIS == 20)) {
+ 210   5                          DEPLACEMENT_XX_TTRIS = -1;
+ 211   5                          SPEED_x_trig_TTRIS = 2;
+ 212   5                      }
+ 213   4                      if(LONG_PRESS_X_TTRIS < 20) {
+ 214   5                          LONG_PRESS_X_TTRIS++;
+ 215   5                      }
+ 216   4                  }
+ 217   3              } else {
+ 218   3                  SPEED_x_trig_TTRIS = (SPEED_x_trig_TTRIS > 0) ? SPEED_x_trig_TTRIS - 1 : 0;
+ 219   3              }
+ 220   2          }
+ 221   1          if((JOY_right_pressed() == 0) && (JOY_left_pressed() == 0)) {
+ 222   2              LONG_PRESS_X_TTRIS = 0;
+ 223   2              PSEUDO_RND_TTRIS();
+ 224   2          }
+ 225   1      
+ 226   1          if(JOY_act_released()) {
+ 227   2              if((OU_SUIS_JE_X_ENGAGED_TTRIS == 0) && (OU_SUIS_JE_Y_ENGAGED_TTRIS == 0)) {
+ 228   3                  Ripple_filter_TTRIS = 0;
+ 229   3              }
+ 230   2          }
+ 231   1          if((Ripple_filter_TTRIS == 1)) {
+ 232   2              CHECK_if_Rot_Ok_TTRIS(Rot_TTRIS);
+ 233   2              Ripple_filter_TTRIS = 2;
+ 234   2          }
+ 235   1          if(OU_SUIS_JE_Y_ENGAGED_TTRIS == 0) {
+ 236   2              DROP_TRIG_TTRIS--;
+ 237   2              if(DROP_TRIG_TTRIS == 0) {
+ 238   3                  DEPLACEMENT_YY_TTRIS = 1;
+ 239   3                  DROP_TRIG_TTRIS = Level_Speed_ADJ_TTRIS;
+ 240   3              }
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 5   
+
+ 241   2          }
+ 242   1          if(DROP_SPEED_TTRIS > 0) {
+ 243   2              DROP_SPEED_TTRIS--;
+ 244   2          } else {
+ 245   2              DROP_SPEED_TTRIS = Level_Speed_ADJ_TTRIS;
+ 246   2          }
+ 247   1          if(JOY_down_pressed()) {
+ 248   2      
+ 249   2              // ajouter cest 2 ligne
+ 250   2              if(OU_SUIS_JE_X_ENGAGED_TTRIS == 0) {
+ 251   3                  DEPLACEMENT_XX_TTRIS = 0;
+ 252   3                  LONG_PRESS_X_TTRIS = 1;
+ 253   3              } // ajouter cest 2 ligne
+ 254   2      
+ 255   2              PSEUDO_RND_TTRIS();
+ 256   2              if(DOWN_DESACTIVE_TTRIS == 0) {
+ 257   3                  DEPLACEMENT_YY_TTRIS = 1;
+ 258   3                  DROP_SPEED_TTRIS = 0;
+ 259   3              }
+ 260   2          } else {
+ 261   2              DOWN_DESACTIVE_TTRIS = 0;
+ 262   2          }
+ 263   1      }
+ 264          
+ 265          void Game_Play_TTRIS(void)
+ 266          {
+ 267   1          unsigned char LEVEL_TMP = (Nb_of_line_F_TTRIS / 20);
+ 268   1          if(Level_TTRIS != LEVEL_TMP) {
+ 269   2              Level_TTRIS = LEVEL_TMP;
+ 270   2              SND_TTRIS(2);
+ 271   2          }
+ 272   1          if(Level_TTRIS < 21) {
+ 273   2              Level_Speed_ADJ_TTRIS = map(Level_TTRIS, 0, 20, 11, 1);
+ 274   2          }
+ 275   1      }
+ 276          
+ 277          unsigned char End_Play_TTRIS(void)
+ 278          {
+ 279   1          unsigned char t = 0;
+ 280   1          for(t = 0; t < 12; t++) {
+ 281   2              if(GRID_STAT_TTRIS(t, 1) == 1) {
+ 282   3                  return 1;
+ 283   3              }
+ 284   2          }
+ 285   1          return 0;
+ 286   1      }
+ 287          
+ 288          void DELETE_LINE_TTRIS(void)
+ 289          {
+ 290   1          unsigned char LOOP, SCAN_Line, ADDs_Block, OK_DELETE = 0;
+ 291   1          unsigned char LINE_MEM[19] = {0};
+ 292   1          unsigned char Nb_of_Line_temp = 0;
+ 293   1          for(LOOP = 0; LOOP < 19; LOOP++) {
+ 294   2              ADDs_Block = 1;
+ 295   2              for(SCAN_Line = 0; SCAN_Line < 12; SCAN_Line++) {
+ 296   3                  if(GRID_STAT_TTRIS(SCAN_Line, LOOP) == 0) {
+ 297   4                      ADDs_Block = 0;
+ 298   4                  }
+ 299   3              }
+ 300   2              if(ADDs_Block) {
+ 301   3                  LINE_MEM[LOOP] = 1;
+ 302   3                  OK_DELETE = 1;
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 6   
+
+ 303   3              }
+ 304   2          }
+ 305   1          if(OK_DELETE == 1) {
+ 306   2              FLASH_LINE_TTRIS(&LINE_MEM[0]);
+ 307   2              Clean_Grid_TTRIS(&LINE_MEM[0]);
+ 308   2          }
+ 309   1          for(LOOP = 0; LOOP < 19; LOOP++) {
+ 310   2              if(LINE_MEM[LOOP] == 1) {
+ 311   3                  Nb_of_Line_temp++;
+ 312   3              }
+ 313   2          }
+ 314   1          Nb_of_line_F_TTRIS = Nb_of_line_F_TTRIS + Nb_of_Line_temp;
+ 315   1          Scores_TTRIS = (Scores_TTRIS + Calcul_of_Score_TTRIS(Nb_of_Line_temp));
+ 316   1      }
+ 317          
+ 318          unsigned char Calcul_of_Score_TTRIS(unsigned char Tmp_TTRIS)
+ 319          {
+ 320   1          switch(Tmp_TTRIS) {
+ 321   2          case 0:
+ 322   2              return 0;
+ 323   2              break;
+ 324   2          case 1:
+ 325   2              return 2;
+ 326   2              break;
+ 327   2          case 2:
+ 328   2              return 5;
+ 329   2              break;
+ 330   2          case 3:
+ 331   2              return 8;
+ 332   2              break;
+ 333   2          case 4:
+ 334   2              return 12;
+ 335   2              break;
+ 336   2          default:
+ 337   2              return 0;
+ 338   2              break;
+ 339   2          }
+ 340   1      }
+ 341          
+ 342          void FLASH_LINE_TTRIS(unsigned char* PASS_LINE)
+ 343          {
+ 344   1          unsigned char LOOP;
+ 345   1          for(LOOP = 0; LOOP < 5; LOOP++) {
+ 346   2              PAINT_LINE_TTRIS(1, &PASS_LINE[0]);
+ 347   2              Tiny_Flip_TTRIS(82);
+ 348   2      
+ 349   2              PAINT_LINE_TTRIS(0, &PASS_LINE[0]);
+ 350   2              Tiny_Flip_TTRIS(82);
+ 351   2          }
+ 352   1          SND_TTRIS(5);
+ 353   1      }
+ 354          
+ 355          void PAINT_LINE_TTRIS(unsigned char VISIBLE, unsigned char* PASS_LINE)
+ 356          {
+ 357   1          unsigned char LOOP, SCAN_Line;
+ 358   1          for(LOOP = 0; LOOP < 19; LOOP++) {
+ 359   2              if(PASS_LINE[LOOP] == 1) {
+ 360   3                  for(SCAN_Line = 0; SCAN_Line < 12; SCAN_Line++) {
+ 361   4                      CHANGE_GRID_STAT_TTRIS(SCAN_Line, LOOP, VISIBLE);
+ 362   4                  }
+ 363   3              }
+ 364   2          }
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 7   
+
+ 365   1      }
+ 366          
+ 367          void Clean_Grid_TTRIS(unsigned char* PASS_LINE)
+ 368          {
+ 369   1          unsigned char GRID_2 = 18, GRID_1 = 18;
+ 370   1          unsigned char x;
+ 371   1          while(1) {
+ 372   2              if(PASS_LINE[GRID_1] == 1) {
+ 373   3                  GRID_2 = GRID_1;
+ 374   3                  GRID_2 = (GRID_2 > 0) ? GRID_2 - 1 : 0;
+ 375   3                  break;
+ 376   3              }
+ 377   2              GRID_1 = (GRID_1 > 0) ? GRID_1 - 1 : 0;
+ 378   2          }
+ 379   1          while(1) {
+ 380   2              while(1) {
+ 381   3                  if(PASS_LINE[GRID_2] == 1) {
+ 382   4                      GRID_2 = (GRID_2 > 0) ? GRID_2 - 1 : 0;
+ 383   4                  } else {
+ 384   4                      break;
+ 385   4                  }
+ 386   3              }
+ 387   2              for(x = 0; x < 12; x++) {
+ 388   3                  CHANGE_GRID_STAT_TTRIS(x, GRID_1, (GRID_2 > 0) ? GRID_STAT_TTRIS(x, GRID_2) : 0);
+ 389   3              }
+ 390   2              GRID_1 = (GRID_1 > 0) ? GRID_1 - 1 : 0;
+ 391   2              GRID_2 = (GRID_2 > 0) ? GRID_2 - 1 : 0;
+ 392   2              if(GRID_1 == 0) {
+ 393   3                  break;
+ 394   3              }
+ 395   2          }
+ 396   1      }
+ 397          
+ 398          unsigned char CHECK_if_Rot_Ok_TTRIS(unsigned char* Rot_TTRIS)
+ 399          {
+ 400   1          unsigned char Mem_rot = *Rot_TTRIS;
+ 401   1          Ou_suis_Je_TTRIS(xx_TTRIS, yy_TTRIS);
+ 402   1          *Rot_TTRIS = (*Rot_TTRIS < PIECEs_rot_TTRIS) ? *Rot_TTRIS + 1 : 0;
+ 403   1          rotate_Matrix_TTRIS(*Rot_TTRIS);
+ 404   1      
+ 405   1          if((Check_collision_x_TTRIS(OU_SUIS_JE_X_ENGAGED_TTRIS) || (Check_collision_y_TTRIS(OU_SUIS_JE_Y_ENGAG
+             -ED_TTRIS))) != 0) {
+ 406   2              *Rot_TTRIS = Mem_rot;
+ 407   2              rotate_Matrix_TTRIS(*Rot_TTRIS);
+ 408   2              return 1;
+ 409   2          }
+ 410   1          SND_TTRIS(0);
+ 411   1          return 0;
+ 412   1      }
+ 413          
+ 414          unsigned char Check_collision_x_TTRIS(int x_Axe)
+ 415          {
+ 416   1          unsigned char x, y;
+ 417   1          for(y = 0; y < 5; y++) {
+ 418   2              for(x = 0; x < 5; x++) {
+ 419   3                  if(Piece_Mat2_TTRIS[x][y] == 1) {
+ 420   4                      if(GRID_STAT_TTRIS((x + OU_SUIS_JE_X_TTRIS) + x_Axe, y + OU_SUIS_JE_Y_TTRIS)) {
+ 421   5                          return 1;
+ 422   5                      }
+ 423   4                  }
+ 424   3              }
+ 425   2          }
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 8   
+
+ 426   1          return 0;
+ 427   1      }
+ 428          
+ 429          unsigned char Check_collision_y_TTRIS(int y_Axe)
+ 430          {
+ 431   1          unsigned char x, y;
+ 432   1          for(y = 0; y < 5; y++) {
+ 433   2              for(x = 0; x < 5; x++) {
+ 434   3                  if(Piece_Mat2_TTRIS[x][y] == 1) {
+ 435   4                      if(GRID_STAT_TTRIS(x + OU_SUIS_JE_X_TTRIS, (y + OU_SUIS_JE_Y_TTRIS) + y_Axe)) {
+ 436   5                          return 1;
+ 437   5                      }
+ 438   4                  }
+ 439   3              }
+ 440   2          }
+ 441   1          return 0;
+ 442   1      }
+ 443          
+ 444          void Move_Piece_TTRIS(void)
+ 445          {
+ 446   1          Ou_suis_Je_TTRIS(xx_TTRIS, yy_TTRIS);
+ 447   1          if(OU_SUIS_JE_X_ENGAGED_TTRIS == 0) {
+ 448   2              if(Check_collision_x_TTRIS(DEPLACEMENT_XX_TTRIS)) {
+ 449   3                  DEPLACEMENT_XX_TTRIS = 0;
+ 450   3              }
+ 451   2          }
+ 452   1          if(DEPLACEMENT_XX_TTRIS == 1) {
+ 453   2              xx_TTRIS++;
+ 454   2          }
+ 455   1          if(DEPLACEMENT_XX_TTRIS == -1) {
+ 456   2              xx_TTRIS--;
+ 457   2          }
+ 458   1          Ou_suis_Je_TTRIS(xx_TTRIS, yy_TTRIS);
+ 459   1          if(OU_SUIS_JE_X_ENGAGED_TTRIS == 0) {
+ 460   2              DEPLACEMENT_XX_TTRIS = 0;
+ 461   2          }
+ 462   1      
+ 463   1          if(Check_collision_y_TTRIS(DEPLACEMENT_YY_TTRIS)) {
+ 464   2              DEPLACEMENT_YY_TTRIS = 0;
+ 465   2              LONG_PRESS_X_TTRIS = 0;
+ 466   2              Ripple_filter_TTRIS = 0;
+ 467   2              DROP_BREAK_TTRIS = 6;
+ 468   2              Tiny_Flip_TTRIS(82); // add line for refresh screen at drop
+ 469   2          } else {
+ 470   2              DROP_BREAK_TTRIS = 0;
+ 471   2          }
+ 472   1          if(DROP_SPEED_TTRIS == 0) {
+ 473   2              if(DEPLACEMENT_YY_TTRIS == -1) {
+ 474   3                  yy_TTRIS--;
+ 475   3              }
+ 476   2              if(DEPLACEMENT_YY_TTRIS == 1) {
+ 477   3                  yy_TTRIS++;
+ 478   3              }
+ 479   2          }
+ 480   1          Ou_suis_Je_TTRIS(xx_TTRIS, yy_TTRIS);
+ 481   1          if(OU_SUIS_JE_Y_ENGAGED_TTRIS == 0) {
+ 482   2              DEPLACEMENT_YY_TTRIS = 0;
+ 483   2          }
+ 484   1      }
+ 485          
+ 486          void Ou_suis_Je_TTRIS(int xx_, int yy_)
+ 487          {
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 9   
+
+ 488   1          int xx_t, yy_t;
+ 489   1          xx_t = (((xx_) + 9) - 46);
+ 490   1          yy_t = (((yy_) + 9) - 5);
+ 491   1          OU_SUIS_JE_X_TTRIS = ((xx_t / 3) - 3);
+ 492   1          if((xx_t % 3) != 0) {
+ 493   2              OU_SUIS_JE_X_ENGAGED_TTRIS = 1;
+ 494   2          } else {
+ 495   2              OU_SUIS_JE_X_ENGAGED_TTRIS = 0;
+ 496   2          }
+ 497   1          OU_SUIS_JE_Y_TTRIS = ((yy_t / 3) - 3);
+ 498   1          if((yy_t) != ((OU_SUIS_JE_Y_TTRIS + 3) * 3)) {
+ 499   2              OU_SUIS_JE_Y_ENGAGED_TTRIS = 1;
+ 500   2          } else {
+ 501   2              OU_SUIS_JE_Y_ENGAGED_TTRIS = 0;
+ 502   2          }
+ 503   1      }
+ 504          
+ 505          void Select_Piece_TTRIS(unsigned char Piece_)
+ 506          {
+ 507   1          PIECEs_TTRIS = Piece_;
+ 508   1          switch(Piece_) {
+ 509   2          case 0:
+ 510   2              PIECEs_rot_TTRIS = 3;
+ 511   2              break;
+ 512   2          case 1:
+ 513   2              PIECEs_rot_TTRIS = 0;
+ 514   2              break;
+ 515   2          case 2:
+ 516   2          case 3:
+ 517   2          case 4:
+ 518   2              PIECEs_rot_TTRIS = 1;
+ 519   2              break;
+ 520   2          case 5:
+ 521   2          case 6:
+ 522   2              PIECEs_rot_TTRIS = 3;
+ 523   2              break;
+ 524   2          default:
+ 525   2              PIECEs_rot_TTRIS = 0;
+ 526   2              break;
+ 527   2          }
+ 528   1      }
+ 529          
+ 530          void rotate_Matrix_TTRIS(unsigned char ROT)
+ 531          {
+ 532   1          unsigned char a_ = 0, b_ = 0, y, x;
+ 533   1          for(y = 0; y < 5; y++) {
+ 534   2              for(x = 0; x < 5; x++) {
+ 535   3                  switch(ROT) {
+ 536   4                  case 0:
+ 537   4                      a_ = x, b_ = y;
+ 538   4                      break;
+ 539   4                  case 1:
+ 540   4                      a_ = 4 - y, b_ = x;
+ 541   4                      break;
+ 542   4                  case 2:
+ 543   4                      a_ = 4 - x, b_ = 4 - y;
+ 544   4                      break;
+ 545   4                  case 3:
+ 546   4                      a_ = y, b_ = 4 - x;
+ 547   4                      break;
+ 548   4                  default:
+ 549   4                      break;
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 10  
+
+ 550   4                  }
+ 551   3                  Piece_Mat2_TTRIS[a_][b_] = Scan_Piece_Matrix_TTRIS(x, y + (PIECEs_TTRIS * 5));
+ 552   3              }
+ 553   2          }
+ 554   1      }
+ 555          
+ 556          unsigned char Scan_Piece_Matrix_TTRIS(int x_Mat, int y_Mat)
+ 557          {
+ 558   1          unsigned char Result;
+ 559   1          Result = (0x80 >> x_Mat) & (Pieces_TTRIS1[y_Mat]);
+ 560   1          if(Result) {
+ 561   2              return 1;
+ 562   2          }
+ 563   1      
+ 564   1          return 0;
+ 565   1      }
+ 566          
+ 567          unsigned char GRID_STAT_TTRIS(int X_SCAN, int Y_SCAN)
+ 568          {
+ 569   1          unsigned char Y_VAR_SELECT, Y_VAR_DECALAGE, COMP_BYTE_DECALAGE;
+ 570   1          if(Y_SCAN < 0)
+ 571   1              return 0;
+ 572   1          if((X_SCAN < 0) || (X_SCAN > 11)) {
+ 573   2              return 1;
+ 574   2          }
+ 575   1          if(Y_SCAN > 18) {
+ 576   2              return 1;
+ 577   2          }
+ 578   1          Y_VAR_SELECT = Y_SCAN >> 3;
+ 579   1          Y_VAR_DECALAGE = RecupeDecalageY_TTRIS(Y_SCAN);
+ 580   1          COMP_BYTE_DECALAGE = (0x80 >> Y_VAR_DECALAGE);
+ 581   1          if((COMP_BYTE_DECALAGE & Grid_TTRIS[X_SCAN][Y_VAR_SELECT]) == 0) {
+ 582   2              return 0;
+ 583   2          } else {
+ 584   2              return 1;
+ 585   2          }
+ 586   1          return 0;
+ 587   1      }
+ 588          
+ 589          unsigned char CHANGE_GRID_STAT_TTRIS(int X_SCAN, int Y_SCAN, unsigned char VALUE)
+ 590          {
+ 591   1      
+ 592   1          unsigned char Y_VAR_SELECT, Y_VAR_DECALAGE, COMP_BYTE_DECALAGE;
+ 593   1          if((X_SCAN < 0) || (X_SCAN > 11))
+ 594   1              return 0;
+ 595   1          if((Y_SCAN < 0) || (Y_SCAN > 18))
+ 596   1              return 0;
+ 597   1          Y_VAR_SELECT = Y_SCAN >> 3;
+ 598   1          Y_VAR_DECALAGE = RecupeDecalageY_TTRIS(Y_SCAN);
+ 599   1          COMP_BYTE_DECALAGE = (0x80 >> Y_VAR_DECALAGE);
+ 600   1          if(VALUE) {
+ 601   2              Grid_TTRIS[X_SCAN][Y_VAR_SELECT] = COMP_BYTE_DECALAGE | Grid_TTRIS[X_SCAN][Y_VAR_SELECT];
+ 602   2          } else {
+ 603   2              Grid_TTRIS[X_SCAN][Y_VAR_SELECT] = (0xff - COMP_BYTE_DECALAGE) & Grid_TTRIS[X_SCAN][Y_VAR_SELECT];
+ 604   2          }
+ 605   1          return 0;
+ 606   1      }
+ 607          
+ 608          unsigned char blitzSprite_TTRIS(int xPos, int yPos, unsigned char xPASS, unsigned char yPASS, unsigned cha
+             -r FRAME, const unsigned char* SPRITES)
+ 609          {
+ 610   1          unsigned char OUTBYTE, WSPRITE, HSPRITE, Wmax, RECUPELINEY, SPRITEyLINE, SPRITEyDECALAGE, ScanA, ScanB
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 11  
+
+             -, OUTBYTE2;
+ 611   1          unsigned int PICBYTE;
+ 612   1          WSPRITE = ((SPRITES[0]));
+ 613   1          HSPRITE = ((SPRITES[1]));
+ 614   1          Wmax = ((HSPRITE * WSPRITE) + 1);
+ 615   1          PICBYTE = FRAME * (Wmax - 1);
+ 616   1          RECUPELINEY = RecupeLineY_TTRIS(yPos);
+ 617   1          if((xPASS > ((xPos + (WSPRITE - 1)))) || (xPASS < xPos) || ((RECUPELINEY > yPASS) || ((RECUPELINEY + (
+             -HSPRITE)) < yPASS))) {
+ 618   2              return 0x00;
+ 619   2          }
+ 620   1          SPRITEyLINE = (yPASS - (RECUPELINEY));
+ 621   1          SPRITEyDECALAGE = (RecupeDecalageY_TTRIS(yPos));
+ 622   1          ScanA = (((xPASS - xPos) + (SPRITEyLINE * WSPRITE)) + 2);
+ 623   1          ScanB = (((xPASS - xPos) + ((SPRITEyLINE - 1) * WSPRITE)) + 2);
+ 624   1          if(ScanA > Wmax) {
+ 625   2              OUTBYTE = 0x00;
+ 626   2          } else {
+ 627   2              OUTBYTE = SplitSpriteDecalageY_TTRIS(SPRITEyDECALAGE, (SPRITES[ScanA + (PICBYTE)]), 1);
+ 628   2          }
+ 629   1          if((SPRITEyLINE > 0)) {
+ 630   2              OUTBYTE2 = SplitSpriteDecalageY_TTRIS(SPRITEyDECALAGE, (SPRITES[ScanB + (PICBYTE)]), 0);
+ 631   2              if(ScanB > Wmax) {
+ 632   3                  return OUTBYTE;
+ 633   3              } else {
+ 634   3                  return OUTBYTE | OUTBYTE2;
+ 635   3              }
+ 636   2          } else {
+ 637   2              return OUTBYTE;
+ 638   2          }
+ 639   1      }
+ 640          
+ 641          unsigned char H_grid_Scan_TTRIS(unsigned char xPASS)
+ 642          {
+ 643   1          return (H_Grid_TTTRIS[xPASS - 46]);
+ 644   1      }
+ 645          
+ 646          unsigned char Recupe_TTRIS(unsigned char xPASS, unsigned char yPASS)
+ 647          {
+ 648   1          unsigned char BYTE_TTRIS = 0;
+ 649   1          unsigned char x = 0, y;
+ 650   1          for(y = MEM_TTTRIS[(yPASS << 1)]; y < MEM_TTTRIS[(yPASS << 1) + 1]; y++) {
+ 651   2              if((xPASS > 45) && (xPASS < 82)) {
+ 652   3                  x = H_grid_Scan_TTRIS(xPASS);
+ 653   3              } else {
+ 654   3                  return (RECUPE_BACKGROUND_TTRIS(xPASS, yPASS) |
+ 655   3                          NEXT_BLOCK_TTRIS(xPASS, yPASS) |
+ 656   3                          recupe_Nb_of_line_TTRIS(xPASS, yPASS) |
+ 657   3                          recupe_SCORES_TTRIS(xPASS, yPASS) |
+ 658   3                          recupe_LEVEL_TTRIS(xPASS, yPASS));
+ 659   3              }
+ 660   2              if(GRID_STAT_TTRIS(x, y) == 1) {
+ 661   3                  BYTE_TTRIS = BYTE_TTRIS | blitzSprite_TTRIS(46 + (x * 3), 5 + (y * 3), xPASS, yPASS, 0, tinybl
+             -ock_TTTRIS);
+ 662   3              }
+ 663   2          }
+ 664   1          return RECUPE_BACKGROUND_TTRIS(xPASS, yPASS) | BYTE_TTRIS | DropPiece_TTRIS(xPASS, yPASS);
+ 665   1      }
+ 666          
+ 667          unsigned char NEXT_BLOCK_TTRIS(unsigned char xPASS, unsigned char yPASS)
+ 668          {
+ 669   1          unsigned char y = 0, x = 0;
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 12  
+
+ 670   1          if(xPASS > 89) {
+ 671   2              unsigned char Byte_Mem = 0;
+ 672   2              unsigned char x_add = 0;
+ 673   2              unsigned char y_add = 0;
+ 674   2              switch(PIECEs_TTRIS_PREVIEW) {
+ 675   3              case 0:
+ 676   3                  x_add = 1;
+ 677   3                  y_add = 1;
+ 678   3                  break;
+ 679   3              case 1:
+ 680   3                  y_add = -1;
+ 681   3                  break;
+ 682   3              case 2:
+ 683   3                  x_add = 1;
+ 684   3                  break;
+ 685   3              case 3:
+ 686   3                  break;
+ 687   3              case 4:
+ 688   3                  x_add = 1;
+ 689   3                  y_add = 1;
+ 690   3                  break;
+ 691   3              case 5:
+ 692   3                  x_add = 1;
+ 693   3                  break;
+ 694   3              case 6:
+ 695   3                  break;
+ 696   3              default:
+ 697   3                  break;
+ 698   3              }
+ 699   2      
+ 700   2              for(y = 0; y < 5; y++) {
+ 701   3                  for(x = 0; x < 5; x++) {
+ 702   4                      if(Scan_Piece_Matrix_TTRIS(x, y + (PIECEs_TTRIS_PREVIEW * 5)) == 1) {
+ 703   5                          Byte_Mem |= blitzSprite_TTRIS(92 + (x * 2) + x_add, (27 + (y * 2)) - 5 + y_add, xPASS,
+             - yPASS, 0, tiny_PREVIEW_block_TTTRIS);
+ 704   5                      }
+ 705   4                  }
+ 706   3              }
+ 707   2              return Byte_Mem;
+ 708   2          }
+ 709   1          return 0;
+ 710   1      }
+ 711          
+ 712          unsigned char RECUPE_BACKGROUND_TTRIS(unsigned char xPASS, unsigned char yPASS)
+ 713          {
+ 714   1          return (BACKGROUND_TTRIS[xPASS + (yPASS * 128)]);
+ 715   1      }
+ 716          
+ 717          unsigned char DropPiece_TTRIS(unsigned char xPASS, unsigned char yPASS)
+ 718          {
+ 719   1          unsigned char Byte_Mem = 0, y = 0, x = 0;
+ 720   1          for(y = 0; y < 5; y++) {
+ 721   2              for(x = 0; x < 5; x++) {
+ 722   3                  if(Piece_Mat2_TTRIS[x][y] == 1) {
+ 723   4                      Byte_Mem |= blitzSprite_TTRIS(xx_TTRIS + (x * 3), (yy_TTRIS + (y * 3)) - 5, xPASS, yPASS, 
+             -0, tinyblock2_TTTRIS);
+ 724   4                  }
+ 725   3              }
+ 726   2          }
+ 727   1          return Byte_Mem;
+ 728   1      }
+ 729          
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 13  
+
+ 730          unsigned char SplitSpriteDecalageY_TTRIS(unsigned char decalage, unsigned char Input, unsigned char UPorDO
+             -WN)
+ 731          {
+ 732   1          if(UPorDOWN) {
+ 733   2              return Input << decalage;
+ 734   2          }
+ 735   1          return Input >> (8 - decalage);
+ 736   1      }
+ 737          
+ 738          unsigned char RecupeLineY_TTRIS(unsigned char Valeur)
+ 739          {
+ 740   1          return (Valeur >> 3);
+ 741   1      }
+ 742          
+ 743          unsigned char RecupeDecalageY_TTRIS(unsigned char Valeur)
+ 744          {
+ 745   1          return (Valeur - ((Valeur >> 3) << 3));
+ 746   1      }
+ 747          
+ 748          void Tiny_Flip_TTRIS(unsigned char HR_TTRIS)
+ 749          {
+ 750   1          unsigned char y, x;
+ 751   1          for(y = 0; y < 8; y++) {
+ 752   2              oled_set_pos(0, y);
+ 753   2              OLED_I2C_Start();
+ 754   2              OLED_I2C_SendByte(0x78);
+ 755   2              OLED_I2C_SendByte(0x40);
+ 756   2              for(x = 0; x < HR_TTRIS; x++) {
+ 757   3                  OLED_I2C_SendByte(Recupe_TTRIS(x, y));
+ 758   3              }
+ 759   2              OLED_I2C_Stop();
+ 760   2          }
+ 761   1      }
+ 762          
+ 763          void Flip_intro_TTRIS(unsigned char* TIMER1)
+ 764          {
+ 765   1          unsigned char y, x;
+ 766   1          for(y = 0; y < 8; y++) {
+ 767   2              oled_set_pos(0, y);
+ 768   2              OLED_I2C_Start();
+ 769   2              OLED_I2C_SendByte(0x78);
+ 770   2              OLED_I2C_SendByte(0x40);
+ 771   2              for(x = 0; x < 128; x++) {
+ 772   3                  OLED_I2C_SendByte(intro_TTRIS(x, y, TIMER1));
+ 773   3              }
+ 774   2              OLED_I2C_Stop();
+ 775   2          }
+ 776   1      }
+ 777          
+ 778          unsigned char intro_TTRIS(unsigned char xPASS, unsigned char yPASS, unsigned char* TIMER1)
+ 779          {
+ 780   1          return (RECUPE_BACKGROUND_TTRIS(xPASS, yPASS) |
+ 781   1                  recupe_Chateau_TTRIS(xPASS, yPASS) |
+ 782   1                  Recupe_Start_TTRIS(xPASS, yPASS, TIMER1) |
+ 783   1                  recupe_SCORES_TTRIS(xPASS, yPASS) |
+ 784   1                  recupe_Nb_of_line_TTRIS(xPASS, yPASS) |
+ 785   1                  recupe_SCORES_TTRIS(xPASS, yPASS) |
+ 786   1                  recupe_LEVEL_TTRIS(xPASS, yPASS));
+ 787   1      }
+ 788          
+ 789          unsigned char Recupe_Start_TTRIS(unsigned char xPASS, unsigned char yPASS, unsigned char* TIMER1)
+ 790          {
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 14  
+
+ 791   1          if(*TIMER1 > 3) {
+ 792   2              return blitzSprite_TTRIS(49, 28, xPASS, yPASS, 0, start_button_1_TTRIS) | blitzSprite_TTRIS(49, 36
+             -, xPASS, yPASS, 0, start_button_2_TTRIS);
+ 793   2          } else {
+ 794   2              return 0;
+ 795   2          }
+ 796   1      }
+ 797          
+ 798          unsigned char recupe_Chateau_TTRIS(unsigned char xPASS, unsigned char yPASS)
+ 799          {
+ 800   1          if(xPASS < 46)
+ 801   1              return 0;
+ 802   1          if(xPASS > 81)
+ 803   1              return 0;
+ 804   1          return (chateau_TTRIS[(xPASS - 46) + (yPASS * 36)]);
+ 805   1      }
+ 806          
+ 807          unsigned char recupe_SCORES_TTRIS(unsigned char xPASS, unsigned char yPASS)
+ 808          {
+ 809   1          if(xPASS < 95) {
+ 810   2              return 0;
+ 811   2          }
+ 812   1          if(xPASS > 119) {
+ 813   2              return 0;
+ 814   2          }
+ 815   1          if(yPASS > 1) {
+ 816   2              return 0;
+ 817   2          }
+ 818   1      #define M10000 (Scores_TTRIS / 10000)
+ 819   1      #define M1000 (((Scores_TTRIS) - (M10000 * 10000)) / 1000)
+ 820   1      #define M100 (((Scores_TTRIS) - (M1000 * 1000) - (M10000 * 10000)) / 100)
+ 821   1      #define M10 (((Scores_TTRIS) - (M100 * 100) - (M1000 * 1000) - (M10000 * 10000)) / 10)
+ 822   1      #define M1 ((Scores_TTRIS) - (M10 * 10) - (M100 * 100) - (M1000 * 1000) - (M10000 * 10000))
+ 823   1          return (blitzSprite_TTRIS(95, 8, xPASS, yPASS, M10000, police_TTRIS) |
+ 824   1                  blitzSprite_TTRIS(99, 8, xPASS, yPASS, M1000, police_TTRIS) |
+ 825   1                  blitzSprite_TTRIS(103, 8, xPASS, yPASS, M100, police_TTRIS) |
+ 826   1                  blitzSprite_TTRIS(107, 8, xPASS, yPASS, M10, police_TTRIS) |
+ 827   1                  blitzSprite_TTRIS(111, 8, xPASS, yPASS, M1, police_TTRIS) |
+ 828   1                  blitzSprite_TTRIS(115, 8, xPASS, yPASS, 0, police_TTRIS));
+ 829   1      }
+ 830          
+ 831          void Convert_Nb_of_line_TTRIS(void)
+ 832          {
+ 833   1          Nb_of_line_TTRIS[2] = (Nb_of_line_F_TTRIS / 100);
+ 834   1          Nb_of_line_TTRIS[1] = ((Nb_of_line_F_TTRIS - (Nb_of_line_TTRIS[2] * 100)) / 10);
+ 835   1          Nb_of_line_TTRIS[0] = (Nb_of_line_F_TTRIS - (Nb_of_line_TTRIS[2] * 100) - (Nb_of_line_TTRIS[1] * 10));
+ 836   1      }
+ 837          
+ 838          unsigned char recupe_Nb_of_line_TTRIS(unsigned char xPASS, unsigned char yPASS)
+ 839          {
+ 840   1          if(xPASS < 16) {
+ 841   2              return 0;
+ 842   2          }
+ 843   1          if(xPASS > 28) {
+ 844   2              return 0;
+ 845   2          }
+ 846   1          if(yPASS > 1) {
+ 847   2              return 0;
+ 848   2          }
+ 849   1          return (blitzSprite_TTRIS(16, 8, xPASS, yPASS, Nb_of_line_TTRIS[2], police_TTRIS) |
+ 850   1                  blitzSprite_TTRIS(20, 8, xPASS, yPASS, Nb_of_line_TTRIS[1], police_TTRIS) |
+ 851   1                  blitzSprite_TTRIS(24, 8, xPASS, yPASS, Nb_of_line_TTRIS[0], police_TTRIS));
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 15  
+
+ 852   1      }
+ 853          
+ 854          unsigned char recupe_LEVEL_TTRIS(unsigned char xPASS, unsigned char yPASS)
+ 855          {
+ 856   1          if(xPASS < 109) {
+ 857   2              return 0;
+ 858   2          }
+ 859   1          if(xPASS > 118) {
+ 860   2              return 0;
+ 861   2          }
+ 862   1          if(yPASS != 5) {
+ 863   2              return 0;
+ 864   2          }
+ 865   1          return (blitzSprite_TTRIS(109, 41, xPASS, yPASS, (Level_TTRIS / 10), police_TTRIS) |
+ 866   1                  blitzSprite_TTRIS(114, 41, xPASS, yPASS, (Level_TTRIS % 10), police_TTRIS));
+ 867   1      }
+ 868          
+ 869          void INIT_ALL_VAR_TTRIS(void)
+ 870          {
+ 871   1          unsigned char y = 0, x = 0;
+ 872   1          for(y = 0; y < 3; y++) {
+ 873   2              for(x = 0; x < 12; x++) {
+ 874   3                  Grid_TTRIS[x][y] = 0;
+ 875   3              }
+ 876   2          }
+ 877   1          for(y = 0; y < 5; y++) {
+ 878   2              for(x = 0; x < 5; x++) {
+ 879   3                  Piece_Mat2_TTRIS[x][y] = 0;
+ 880   3              }
+ 881   2          }
+ 882   1          LONG_PRESS_X_TTRIS = 0;
+ 883   1          DOWN_DESACTIVE_TTRIS = 0;
+ 884   1          DROP_SPEED_TTRIS = 0;
+ 885   1          SPEED_x_trig_TTRIS = 0;
+ 886   1          DROP_TRIG_TTRIS = 1;
+ 887   1          xx_TTRIS = 0;
+ 888   1          yy_TTRIS = 0;
+ 889   1          Ripple_filter_TTRIS = 0;
+ 890   1          PIECEs_TTRIS = 0;
+ 891   1          PIECEs_TTRIS_PREVIEW = 0;
+ 892   1          PIECEs_rot_TTRIS = 0;
+ 893   1          DROP_BREAK_TTRIS = 0;
+ 894   1          OU_SUIS_JE_X_TTRIS = 0;
+ 895   1          OU_SUIS_JE_Y_TTRIS = 0;
+ 896   1          OU_SUIS_JE_X_ENGAGED_TTRIS = 0;
+ 897   1          OU_SUIS_JE_Y_ENGAGED_TTRIS = 0;
+ 898   1          DEPLACEMENT_XX_TTRIS = 0;
+ 899   1          DEPLACEMENT_YY_TTRIS = 0;
+ 900   1      }
+ 901          
+ 902          #define Number_of_Backup 4
+ 903          
+ 904          void recupe_HIGHSCORE_TTRIS(void)
+ 905          {
+ 906   1      
+ 907   1          Reset_Value_TTRIS();
+ 908   1      }
+ 909          
+ 910          void Reset_Value_TTRIS(void)
+ 911          {
+ 912   1          Level_TTRIS = 0;
+ 913   1          Nb_of_line_F_TTRIS = 0;
+C51 COMPILER V9.60.7.0   TETRIS                                                            12/07/2024 22:04:37 PAGE 16  
+
+ 914   1          Scores_TTRIS = 0;
+ 915   1      }
+ 916          
+ 917          void save_HIGHSCORE_TTRIS(void)
+ 918          {
+ 919   1      
+ 920   1      }
+ 921          
+ 922          void Check_NEW_RECORD(void)
+ 923          {
+ 924   1      
+ 925   1      }
+ 926          
+ 927          unsigned char checksum(unsigned char Byte_)
+ 928          {
+ 929   1          unsigned char Total_ = 0;
+ 930   1          unsigned char t = 0;
+ 931   1          for(t = 0; t < 8; t++) {
+ 932   2              if((Byte_) & (0x01 << t)) {
+ 933   3                  Total_++;
+ 934   3              }
+ 935   2          }
+ 936   1          return Total_;
+ 937   1      }
+*** WARNING C294 IN LINE 586 OF tetris.c: unreachable code
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   6592    ----
+   CONSTANT SIZE    =     19    ----
+   XDATA SIZE       =    111     155
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
