@@ -22,6 +22,14 @@ echo "中文版本在下方 👇 Chinese version below"
 
 ### Project Overview
 
+<div align="center">
+  <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image1.png" alt="51MCU Handheld Gaming Console" width="600">
+  <br>
+  <em>51MCU Handheld Gaming Console System - Complete Hardware Setup</em>
+</div>
+
+<br>
+
 A multifunctional handheld gaming console system based on the **STC15F2K60S2 8051 microcontroller**, featuring both controller mode and gaming mode. The system supports motion sensing, RGB lighting control, Bluetooth communication, and multiple classic games.
 
 #### System Architecture Diagram
@@ -233,6 +241,45 @@ The system supports Bluetooth connectivity with mobile devices:
 - **Response Time**: < 10ms for button inputs
 - **Power Consumption**: < 200mA @ 5V
 
+### Demo & Effects Showcase
+
+#### 🎮 Controller Mode - Motion Sensing & RGB Effects
+<div align="center">
+  <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image2.png" alt="Controller Mode Demo" width="500">
+  <br>
+  <em>Controller Mode: Real-time motion data visualization with VOFA+ and RGB lighting effects</em>
+</div>
+
+**Features Demonstrated:**
+- MPU6050 motion sensor data acquisition
+- Real-time 3D visualization using VOFA+ software
+- Dynamic RGB breathing light effects
+- Bluetooth mobile app control integration
+
+#### 🕹️ Gaming Mode - Classic Games Collection
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image3.png" alt="Game Demo 1" width="300">
+        <br>
+        <em>Classic Games: Snake & Tetris on OLED Display</em>
+      </td>
+      <td align="center">
+        <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image4.png" alt="Game Demo 2" width="300">
+        <br>
+        <em>Action Games: Star Wars & Dino Jump Adventures</em>
+      </td>
+    </tr>
+  </table>
+</div>
+
+**Gaming Features:**
+- Four classic games with smooth 128x64 OLED graphics
+- Responsive button controls for optimal gaming experience
+- Score tracking and game state management
+- Bluetooth game selection via mobile app
+
 ---
 
 ## 中文版本
@@ -245,6 +292,14 @@ echo "English version above 👆 英文版本在上方"
 [🔝 返回语言选择](#language-selection--语言选择) | [🇺🇸 English Version](#english-version)
 
 ### 项目概述
+
+<div align="center">
+  <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image1.png" alt="51MCU掌上游戏机" width="600">
+  <br>
+  <em>51MCU掌上游戏机系统 - 完整硬件配置</em>
+</div>
+
+<br>
 
 基于 **STC15F2K60S2 8051 单片机**实现的多功能掌上游戏机系统，具有手柄模式和游戏机模式两种工作模式。系统支持运动感应、RGB灯效控制、蓝牙通信和多款经典游戏。
 
@@ -457,28 +512,41 @@ PLAY_GAME/
 - **响应时间**: 按键输入 < 10ms
 - **功耗**: < 200mA @ 5V
 
----
+### 演示效果展示
 
+#### 🎮 手柄模式 - 运动感应与RGB灯效
 <div align="center">
-
-```json
-{
-  "project": "Handheld Gaming Console System",
-  "course": "MCU Course Design", 
-  "year": "2025",
-  "language": ["English", "中文"],
-  "status": "✅ Complete"
-}
-```
-
-**Navigation / 导航**
-
-[🔝 Top / 返回顶部](#handheld-gaming-console-system) | [🇺🇸 English](#english-version) | [🇨🇳 中文](#中文版本)
-
+  <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image2.png" alt="手柄模式演示" width="500">
+  <br>
+  <em>手柄模式：VOFA+实时运动数据可视化与RGB呼吸灯效果</em>
 </div>
 
----
+**演示功能:**
+- MPU6050运动传感器数据采集
+- 使用VOFA+软件实时三维可视化
+- 动态RGB呼吸灯效果
+- 蓝牙手机App控制集成
 
-*本项目为MCU课程设计作品，展示了嵌入式系统综合应用开发能力。*
+#### 🕹️ 游戏模式 - 经典游戏合集
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image3.png" alt="游戏演示1" width="300">
+        <br>
+        <em>经典游戏：OLED显示屏上的贪吃蛇与俄罗斯方块</em>
+      </td>
+      <td align="center">
+        <img src="https://github.com/IllusionMZX/51MCU-MGamepad/blob/main/image/image4.png" alt="游戏演示2" width="300">
+        <br>
+        <em>动作游戏：星球大战与小恐龙跳一跳冒险</em>
+      </td>
+    </tr>
+  </table>
+</div>
 
-*This project is a MCU course design work, demonstrating comprehensive embedded system application development capabilities.*
+**游戏特色:**
+- 四款经典游戏，128x64 OLED流畅图形显示
+- 响应式按键控制，优化游戏体验
+- 分数记录和游戏状态管理
+- 蓝牙手机App游戏选择功能
